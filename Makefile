@@ -7,3 +7,6 @@ build:
 
 run:
 	./out/main
+
+test: 
+	./lib/bashunit tests/test.bash
