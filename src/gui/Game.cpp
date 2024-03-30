@@ -4,6 +4,34 @@
 #include <iostream>
 #include <string>
 
+uint64_t RANK_1 = 0x00000000000000FFULL;
+uint64_t RANK_2 = 0x000000000000FF00ULL;
+uint64_t RANK_3 = 0x0000000000FF0000ULL;
+uint64_t RANK_4 = 0x00000000FF000000ULL;
+uint64_t RANK_5 = 0x000000FF00000000ULL;
+uint64_t RANK_6 = 0x0000FF0000000000ULL;
+uint64_t RANK_7 = 0x00FF000000000000ULL;
+uint64_t RANK_8 = 0xFF00000000000000ULL;
+
+uint64_t FILE_A = 0x0101010101010101ULL;
+uint64_t FILE_B = 0x0202020202020202ULL;
+uint64_t FILE_C = 0x0404040404040404ULL;
+uint64_t FILE_D = 0x0808080808080808ULL;
+uint64_t FILE_E = 0x1010101010101010ULL;
+uint64_t FILE_F = 0x2020202020202020ULL;
+uint64_t FILE_G = 0x4040404040404040ULL;
+uint64_t FILE_H = 0x8080808080808080ULL;
+
+// Get the western field on a bitboard
+uint64_t west(uint64_t b) { return (b & ~FILE_A) << 1; }
+uint64_t east(uint64_t b) { return (b & ~FILE_H) >> 1; }
+uint64_t north_west(uint64_t b) { return (b & ~FILE_A) << 9; }
+uint64_t north_east(uint64_t b) { return (b & ~FILE_H) << 7; }
+
+// 0 0 0 1 1 0 0 0
+//         ^
+// 0 0 0 1 0 0 0 0
+
 enum PieceType
 {
     WHITE_KING,
@@ -37,6 +65,7 @@ public:
     Piece pieces[8][8] = {{{.piece = sf::Sprite(), .type = PieceType::EMPTY}}}; // Array für die Schachfiguren
     // Create a transparent texture for empty fields
     sf::Texture emptyTexture;
+    int64_t bitboards[12];
 
     Game()
         : window(sf::VideoMode(800, 800), "Blitz Chess"), position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
@@ -288,7 +317,23 @@ public:
     }
 
     bool allowedMove(){
-        return true;
+        // Initialize the first bitboard (White Pawn)
+        bitboards[0] = 0;
+        for (int i = 0; i < 8; i++)
+        {
+            for (int j = 0; j < 8; j++)
+            {
+                if (pieces[i][j].type == PieceType::WHITE_PAWN)
+                {
+                    bitboards[0] |= 1ULL << (i * 8 + j);
+                }
+            }
+        }
+
+        uint64_t promotable = RANK_2 & bitboards[0];
+
+        // Calculate valid moves for the white pawn
+        printf("Valid moves: %llu\n | %llu", promotable, bitboards[0]);
     }
     
     void drawBoard()
@@ -409,6 +454,7 @@ public:
                         // Move the piece to the target field
                         movingPiece->piece.setPosition(targetCol * window.getSize().x / 8, targetRow * window.getSize().y / 8);
                         //TODO: Empty does not work!
+                        bool isAllowed = allowedMove();
                         // if (pieces[targetRow][targetCol].type == PieceType::EMPTY && pieceStartIndexX != targetRow && pieceStartIndexY != targetCol) {
                             pieces[targetRow][targetCol] = *movingPiece;
                             pieces[targetRow][targetCol].piece.setPosition(targetCol * window.getSize().x / 8, targetRow * window.getSize().y / 8);
