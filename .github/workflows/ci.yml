@@ -1,0 +1,62 @@
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+name: CI
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install nasm, binutils and build-essential (make)
+        run: |
+          sudo apt update
+          sudo apt install -y nasm
+          sudo apt install -y binutils
+          sudo apt install -y build-essential
+      - name: Build
+        run: make build
+      - name: Run Tests
+        # Remove ANSI escape codes from the output
+        run: make test > tests/results.txt
+      - name: Save Test Results
+        if: always()
+        run: |
+          CONTENT=$(cat tests/results.txt)
+          echo "$CONTENT" | sed 's/\x1b\[[0-9;]*m//g' > tests/results.txt
+      - name: Upload Test Artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: |
+            tests/results.txt
+          retention-days: 15
+  
+  # benchmark:
+    # needs:
+      # - test
+    # name: Benchmark
+    # runs-on: ubuntu-latest
+    # steps:
+      # - uses: actions/checkout@v4
+# 
+      # - name: Install wget and dpkg for hyperfine to work
+        # run: |
+          # sudo apt update
+          # sudo apt install -y wget
+          # sudo apt install -y dpkg
+          # wget https://github.com/sharkdp/hyperfine/releases/download/v1.16.1/hyperfine_1.16.1_amd64.deb
+          # sudo dpkg -i hyperfine_1.16.1_amd64.deb
+      # - name: Run Benchmarks
+        # run: bash benchmarks/*.bench.bash
+# 
+      # - name: Upload Benchmark Artifacts
+        # uses: actions/upload-artifact@v3
+        # with:
+          # name: benchmark-results
+          # path: benchmarks/results/
+          # retention-days: 15

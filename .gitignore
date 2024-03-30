@@ -1,3 +1,6 @@
 
 # Build Artifacts
 out/
+
+# Test artifacts
+artifacts/
