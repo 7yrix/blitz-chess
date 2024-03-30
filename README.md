@@ -6,9 +6,7 @@
 
 <br />
 <div align="center">
-  <a href="https://meta-lang.com">
-    <img src="images/logo.svg" width="300">
-  </a>
+<img src="images/logo.svg" width="300">
 
 <h3 align="center">Blitz Chess</h3>
 <p align="center">Blazingly fast chess engine.</p>
