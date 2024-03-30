@@ -34,13 +34,11 @@ public:
         int windowHeight = window.getSize().y;
 
         // Since we need 64 equally sized fields, we need to determine which size is smaller
-        int fieldSize = windowWidth < windowHeight ? windowWidth / 8 : windowHeight / 8;
+        float fieldSize = windowWidth < windowHeight ? windowWidth / 8 : windowHeight / 8;
 
 				// We want to center the board in the middle of the window
-				int boardWidth = fieldSize * 8;
-				int boardHeight = fieldSize * 8;
-				int boardX = (windowWidth - boardWidth) / 2;
-				int boardY = (windowHeight - boardHeight) / 2;
+				int boardY = (windowHeight - fieldSize * 8) / 2;
+				int boardX = (windowWidth - fieldSize * 8) / 2;
 
         for (int i = 0; i < 8; ++i) {
             for (int j = 0; j < 8; ++j) {
@@ -62,7 +60,6 @@ public:
         int col = 0; // Starten Sie in der ersten Spalte (A)
 
         for (char c : position) {
-            std::cout << "Feld:" << std::to_string(row) << std::to_string(col) << std::endl;
             if (c == ' ') {
                 // Informationen über die Möglichkeit der Rochade etc. erreicht
                 break;
@@ -173,31 +170,27 @@ public:
     void run()
     {
         interpret();
-				int lastWindowWidth = window.getSize().x;
-				int lastWindowHeight = window.getSize().y;
-        while (window.isOpen()) {
-            window.clear();
-						// printf("Window size: %d x %d\n", lastWindowHeight, lastWindowWidth);
-						// Check if the window size has changed
-						initializeBoard();
-								interpret();
-						// if (lastWindowWidth != window.getSize().x || lastWindowHeight != window.getSize().y) {
-								// 
-								// lastWindowWidth = window.getSize().x;
-								// lastWindowHeight = window.getSize().y;
-						// }
+				sf::Event event;
 
-            drawBoard();
-            drawPieces();
-            window.display();
-						// Make sure we can close the window
-						sf::Event event;
-						while (window.pollEvent(event)) {
-								if (event.type == sf::Event::Closed) {
-										window.close();
-								}
+				while (window.isOpen()) {
+					window.clear();
+					while (window.pollEvent(event)) {
+						if (event.type == sf::Event::Resized) {
+							sf::FloatRect view(0, 0, event.size.width, event.size.height);
+							window.setView(sf::View(view));
+							initializeBoard();
+							interpret();
 						}
-        }
+
+						if (event.type == sf::Event::Closed) {
+							window.close();
+						}
+					}
+					drawBoard();
+					drawPieces();
+					window.display();
+				}
+
     }
 };
 
