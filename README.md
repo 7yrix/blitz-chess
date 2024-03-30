@@ -21,13 +21,34 @@
 </div>
 
 - [About The Project](#about-the-project)
+- [Usage](#usage)
+- [Building from Source](#building-from-source)
 - [Contributing](#contributing)
 - [License](#license)
 
 
 ## About The Project
+
 Blitz Chess is a chess engine that is designed to be as fast as possible. It is written in C. The engine is still in development and is not yet ready for use in tournaments.
 
+
+## Usage
+
+The blitz chess engine comes as a standalone binary. You can run it from the command line. The engine will output the best move it has found for the given position.
+
+```sh
+./bin/latest <fen>
+```
+
+## Building from Source
+
+To build the engine from source, you will need to have NASM and ld installed on your system. You can then run the following commands to build the engine.
+
+```sh
+make build # Build the engine
+make run # Run the engine
+make test # Run the tests
+```
 
 ## Contributing
 
