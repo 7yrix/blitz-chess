@@ -26,7 +26,7 @@
 
 
 ## About The Project
-META is a compiler writing language inspired by the META-II Metacompiler from the seminal paper "[META II a syntax-oriented compiler writing language](https://dl.acm.org/doi/10.1145/800257.808896)" written by Val Schorre in 1963. META allows for the creation of compilers, parsers and interpreters for programming languages using a concise and powerful syntax.
+Blitz Chess is a chess engine that is designed to be as fast as possible. It is written in C. The engine is still in development and is not yet ready for use in tournaments.
 
 
 ## Contributing
