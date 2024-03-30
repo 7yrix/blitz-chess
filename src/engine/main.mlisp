@@ -1,0 +1,5 @@
+[defunc [getvalidmoves]
+	]
+
+[defunc [main]
+	[getvalidmoves]]
