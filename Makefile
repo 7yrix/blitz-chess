@@ -1,12 +1,20 @@
 build:
-	./src/engine-mlisp/compiler.bin ./src/engine-mlisp/main.mlisp > ./out/main.s
 	mkdir -p ./out
 	mkdir -p ./bin
+	./src/engine-mlisp/compiler.bin ./src/engine-mlisp/main.mlisp > ./out/main.s
 	nasm -F dwarf -g -f elf32 -o ./out/main.o ./out/main.s 
 	ld -m elf_i386 -o ./out/main ./out/main.o
 	rm ./out/main.o
-	mv ./bin/latest ./bin/$(shell date +'%Y-%m-%d_%H-%M-%S' -r ./bin/latest)
+	
+publish:
+	if [ -f ./bin/latest ]; then \
+		mv ./bin/latest ./bin/$(shell date +'%Y-%m-%d_%H-%M-%S' -r ./bin/latest); \
+	fi
 	cp ./out/main ./bin/latest
+
+clean:
+	rm -rf ./out
+	rm -rf ./bin
 
 run:
 	./out/main
