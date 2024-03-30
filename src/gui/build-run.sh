@@ -1,4 +1,10 @@
-if  g++ -o test Game.cpp -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio; then
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+cd $SCRIPT_DIR
+
+ENTRY="$SCRIPT_DIR/Game.cpp"
+
+if  g++ -o test $ENTRY -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio; then
     # it actually compiled, yippee! now run the game
     ./test
 else

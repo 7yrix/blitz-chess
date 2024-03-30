@@ -1,5 +1,30 @@
-[defunc [getvalidmoves]
-	]
+// We use bitboards to represent the board state. Each bitboard represents a different piece type.
+// The board is represented as a 64-bit integer, with each bit representing a square on the board.
+// The least significant bit represents a1, and the most significant bit represents h8.
+
+[defunc [setbit board index]
+	[asm "mov eax, dword [ebp+12]"]
+	[asm "mov ecx, dword [ebp+8]"]
+	[asm "shl eax, cl"]
+	[asm "or dword [ebp+8], eax"]]
+
+[defunc [getbit board index]
+	[asm "mov eax, dword [ebp+12]"]
+	[asm "mov ecx, dword [ebp+8]"]
+	[asm "shr eax, cl"]
+	[asm "and eax, 1"]]
+
+[defunc [clearbit board index]
+	[asm "mov eax, dword [ebp+12]"]
+	[asm "mov ecx, dword [ebp+8]"]
+	[asm "shl eax, cl"]
+	[asm "not eax"]
+	[asm "and dword [ebp+8], eax"]]
 
 [defunc [main]
-	[getvalidmoves]]
+	[premalloc 96]
+	[define boardpawn [malloc 8]]
+	[setbit boardpawn 8]
+	[return [getbit boardpawn 8]]]
+
+[main]
