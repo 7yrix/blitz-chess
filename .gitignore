@@ -1,3 +1,6 @@
+# Everyhting but the latest build
+bin/*
+!bin/latest
 
 # Build Artifacts
 out/
