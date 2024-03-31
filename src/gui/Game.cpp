@@ -133,6 +133,7 @@ public:
                     for (int i = 0; i < c - '0'; i++) {
                         pieces[row][col].type = PieceType::NONE;
                         pieces[row][col].color = Color::NONE;
+                        pieces[row][col].piece.setTextureRect(sf::IntRect());
                         pieces[row][col].x = col;
                         pieces[row][col].y = row;
                         col++;
@@ -691,18 +692,15 @@ public:
             if(piece.type == PieceType::WHITE_PAWN && target_x==piece.x+1 &&  pieces[get<0>(lastPosition)][get<1>(lastPosition)].enPassant==true || piece.type == PieceType::WHITE_PAWN && target_x==piece.x-1 && pieces[get<0>(lastPosition)][get<1>(lastPosition)].enPassant==true){
                 pieces[get<0>(lastPosition)][get<1>(lastPosition)].type = PieceType::NONE;
                 pieces[get<0>(lastPosition)][get<1>(lastPosition)].color = Color::NONE;
-                pieces[get<0>(lastPosition)][get<1>(lastPosition)].piece.setTextureRect(sf::IntRect());
             }
             if(piece.type == PieceType::BLACK_PAWN && target_x==piece.x+1 && pieces[get<0>(lastPosition)][get<1>(lastPosition)].enPassant==true || piece.type == PieceType::BLACK_PAWN && target_x==piece.x-1 && pieces[get<0>(lastPosition)][get<1>(lastPosition)].enPassant==true){
                 pieces[get<0>(lastPosition)][get<1>(lastPosition)].type = PieceType::NONE;
                 pieces[get<0>(lastPosition)][get<1>(lastPosition)].color = Color::NONE;
-                pieces[get<0>(lastPosition)][get<1>(lastPosition)].piece.setTextureRect(sf::IntRect());
             }
             if(piece.type == PieceType::BLACK_KING && target_x==piece.x+2){//k
                 pieces[0][5] = pieces[0][7];
                 pieces[0][7].color = Color::NONE;
                 pieces[0][7].type = PieceType::NONE;
-                pieces[0][7].piece.setTextureRect(sf::IntRect());
             }
             if(piece.type == PieceType::BLACK_ROOK && piece.x==7){
                 castlek=false;
