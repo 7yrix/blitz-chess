@@ -12,9 +12,9 @@
 <p align="center">Blazingly fast chess engine.</p>
 
   <p align="center">
-    <a href="https://github.com/letsmoe/blitz-chess/issues">Report Bug</a>
+    <a href="https://github.com/7yrix/blitz-chess/issues">Report Bug</a>
     ·
-    <a href="https://github.com/letsmoe/blitz-chess/issues">Request Feature</a>
+    <a href="https://github.com/7yrix/blitz-chess/issues">Request Feature</a>
   </p>
 </div>
 
@@ -66,13 +66,13 @@ Don't forget to give the project a star! Thanks again!
 Distributed under the MIT License. See `LICENSE` for more information.
 
 
-[contributors-shield]: https://img.shields.io/github/contributors/letsmoe/blitz-chess.svg?style=for-the-badge
-[contributors-url]: https://github.com/letsmoe/blitz-chess/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/letsmoe/blitz-chess.svg?style=for-the-badge
-[forks-url]: https://github.com/letsmoe/blitz-chess/network/members
-[stars-shield]: https://img.shields.io/github/stars/letsmoe/blitz-chess.svg?style=for-the-badge
-[stars-url]: https://github.com/letsmoe/blitz-chess/stargazers
-[issues-shield]: https://img.shields.io/github/issues/letsmoe/blitz-chess.svg?style=for-the-badge
-[issues-url]: https://github.com/letsmoe/blitz-chess/issues
-[license-shield]: https://img.shields.io/github/license/letsmoe/blitz-chess.svg?style=for-the-badge
-[license-url]: https://github.com/letsmoe/blitz-chess/blob/master/LICENSE.txt
+[contributors-shield]: https://img.shields.io/github/contributors/7yrix/blitz-chess.svg?style=for-the-badge
+[contributors-url]: https://github.com/7yrix/blitz-chess/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/7yrix/blitz-chess.svg?style=for-the-badge
+[forks-url]: https://github.com/7yrix/blitz-chess/network/members
+[stars-shield]: https://img.shields.io/github/stars/7yrix/blitz-chess.svg?style=for-the-badge
+[stars-url]: https://github.com/7yrix/blitz-chess/stargazers
+[issues-shield]: https://img.shields.io/github/issues/7yrix/blitz-chess.svg?style=for-the-badge
+[issues-url]: https://github.com/7yrix/blitz-chess/issues
+[license-shield]: https://img.shields.io/github/license/7yrix/blitz-chess.svg?style=for-the-badge
+[license-url]: https://github.com/7yrix/blitz-chess/blob/master/LICENSE.txt

@@ -4,3 +4,6 @@ out/
 
 # Test artifacts
 artifacts/
+
+# Use specific settings
+.vcsode/settings.json
