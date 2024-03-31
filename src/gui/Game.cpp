@@ -39,6 +39,14 @@ std::map<char, PieceType> CharacterMap = {
     {'R', PieceType::WHITE_ROOK},   {'B', PieceType::WHITE_BISHOP},
     {'N', PieceType::WHITE_KNIGHT}, {'P', PieceType::WHITE_PAWN}};
 
+std::map<PieceType, char> ReverseCharacterMap = {
+		{PieceType::BLACK_KING, 'k'},   {PieceType::BLACK_QUEEN, 'q'},
+		{PieceType::BLACK_ROOK, 'r'},   {PieceType::BLACK_BISHOP, 'b'},
+		{PieceType::BLACK_KNIGHT, 'n'}, {PieceType::BLACK_PAWN, 'p'},
+		{PieceType::WHITE_KING, 'K'},   {PieceType::WHITE_QUEEN, 'Q'},
+		{PieceType::WHITE_ROOK, 'R'},   {PieceType::WHITE_BISHOP, 'B'},
+		{PieceType::WHITE_KNIGHT, 'N'}, {PieceType::WHITE_PAWN, 'P'}};
+
 std::map<char, Color> ColorMap = {
     {'k', Color::BLACK}, {'q', Color::BLACK}, {'r', Color::BLACK},
     {'b', Color::BLACK}, {'n', Color::BLACK}, {'p', Color::BLACK},
@@ -201,75 +209,23 @@ class Game {
       for (int j = 0; j < 8; j++) {
         if (board[i][j].getGlobalBounds().intersects(
                 pieces[i][j].piece.getGlobalBounds())) {
-          switch (pieces[i][j].type) {
-            case PieceType::EMPTY:
-              break;
-            case PieceType::WHITE_KING:
-              count != 1 ? tmp += std::to_string(count - 1) : tmp += "";
-              tmp += "K";
-              count = 0;
-              break;
-            case PieceType::WHITE_QUEEN:
-              count != 1 ? tmp += std::to_string(count - 1) : tmp += "";
-              tmp += "Q";
-              count = 0;
-              break;
-            case PieceType::WHITE_ROOK:
-              count != 1 ? tmp += std::to_string(count - 1) : tmp += "";
-              tmp += "R";
-              count = 0;
-              break;
-            case PieceType::WHITE_BISHOP:
-              count != 1 ? tmp += std::to_string(count - 1) : tmp += "";
-              tmp += "B";
-              count = 0;
-              break;
-            case PieceType::WHITE_KNIGHT:
-              count != 1 ? tmp += std::to_string(count - 1) : tmp += "";
-              tmp += "N";
-              count = 0;
-              break;
-            case PieceType::WHITE_PAWN:
-              count != 1 ? tmp += std::to_string(count - 1) : tmp += "";
-              tmp += "P";
-              count = 0;
-              break;
-            case PieceType::BLACK_KING:
-              count != 1 ? tmp += std::to_string(count - 1) : tmp += "";
-              tmp += "k";
-              count = 0;
-              break;
-            case PieceType::BLACK_QUEEN:
-              count != 1 ? tmp += std::to_string(count - 1) : tmp += "";
-              tmp += "q";
-              count = 0;
-              break;
-            case PieceType::BLACK_ROOK:
-              count != 1 ? tmp += std::to_string(count - 1) : tmp += "";
-              tmp += "r";
-              count = 0;
-              break;
-            case PieceType::BLACK_BISHOP:
-              count != 1 ? tmp += std::to_string(count - 1) : tmp += "";
-              tmp += "b";
-              count = 0;
-              break;
-            case PieceType::BLACK_KNIGHT:
-              count != 1 ? tmp += std::to_string(count - 1) : tmp += "";
-              tmp += "n";
-              count = 0;
-              break;
-            case PieceType::BLACK_PAWN:
-              count != 1 ? tmp += std::to_string(count - 1) : tmp += "";
-              tmp += "p";
-              count = 0;
-              break;
-          }
+					PieceType type = pieces[i][j].type;
+					if (type != PieceType::EMPTY) {
+						if (count != 1) {
+							tmp += std::to_string(count);
+						}
+						tmp += ReverseCharacterMap[type];
+						count = 0;
+					}
         }
         count++;
         if (j == 7) {
-          count != 1 ? tmp += std::to_string(count - 1) : tmp += "";
-          i != 7 ? tmp += "/" : tmp += "";
+					if (count != 1) {
+						tmp += std::to_string(count - 1);
+					}
+					if (i != 7) {
+						tmp += "/";
+					}
           count = 1;
         }
       }
@@ -510,7 +466,7 @@ class Game {
 						sf::Vector2u position = getFieldPosition(movingPiece->x, movingPiece->y);
 						movingPiece->piece.setPosition(position.x, position.y);
             movingPiece->piece.setTextureRect(sf::IntRect());
-            // reinterpret();
+            reinterpret();
           } else {
 						sf::Vector2u position = getFieldPosition(movingPiece->x, movingPiece->y);
             // Move the piece back to its original position
