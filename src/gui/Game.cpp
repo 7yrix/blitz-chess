@@ -3,34 +3,9 @@
 #include <filesystem>
 #include <iostream>
 #include <string>
+#include <vector>
 
-uint64_t RANK_1 = 0x00000000000000FFULL;
-uint64_t RANK_2 = 0x000000000000FF00ULL;
-uint64_t RANK_3 = 0x0000000000FF0000ULL;
-uint64_t RANK_4 = 0x00000000FF000000ULL;
-uint64_t RANK_5 = 0x000000FF00000000ULL;
-uint64_t RANK_6 = 0x0000FF0000000000ULL;
-uint64_t RANK_7 = 0x00FF000000000000ULL;
-uint64_t RANK_8 = 0xFF00000000000000ULL;
-
-uint64_t FILE_A = 0x0101010101010101ULL;
-uint64_t FILE_B = 0x0202020202020202ULL;
-uint64_t FILE_C = 0x0404040404040404ULL;
-uint64_t FILE_D = 0x0808080808080808ULL;
-uint64_t FILE_E = 0x1010101010101010ULL;
-uint64_t FILE_F = 0x2020202020202020ULL;
-uint64_t FILE_G = 0x4040404040404040ULL;
-uint64_t FILE_H = 0x8080808080808080ULL;
-
-// Get the western field on a bitboard
-uint64_t west(uint64_t b) { return (b & ~FILE_A) << 1; }
-uint64_t east(uint64_t b) { return (b & ~FILE_H) >> 1; }
-uint64_t north_west(uint64_t b) { return (b & ~FILE_A) << 9; }
-uint64_t north_east(uint64_t b) { return (b & ~FILE_H) << 7; }
-
-// 0 0 0 1 1 0 0 0
-//         ^
-// 0 0 0 1 0 0 0 0
+using namespace std;
 
 enum PieceType
 {
@@ -49,9 +24,13 @@ enum PieceType
     EMPTY
 };
 
+
+
 struct Piece{
     sf::Sprite piece;
     PieceType type;
+    int x;
+    int y;
 };
 
 class Game
@@ -65,10 +44,11 @@ public:
     Piece pieces[8][8] = {{{.piece = sf::Sprite(), .type = PieceType::EMPTY}}}; // Array für die Schachfiguren
     // Create a transparent texture for empty fields
     sf::Texture emptyTexture;
-    int64_t bitboards[12];
+    bool isAllowed;
+    int boardPos[8][8] = {{0}};
 
     Game()
-        : window(sf::VideoMode(800, 800), "Blitz Chess"), position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+        : window(sf::VideoMode(800, 800), "Blitz Chess"), position("rnbqkbnr/pppppppp/8/2R5/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
     {
         loadTextures();
         initializeBoard();
@@ -166,53 +146,90 @@ public:
                     case 'k':
                         pieces[row][col].piece.setTexture(pieceTextures[0]); // z. B. Textur für schwarzen König
                         pieces[row][col].type=PieceType::BLACK_KING;
+                        pieces[row][col].x=col;
+                        pieces[row][col].y=row;
+                        boardPos[row][col]=2;
                         break;
                     case 'K':
                         pieces[row][col].piece.setTexture(pieceTextures[6]); // z. B. Textur für weißen König
                         pieces[row][col].type=PieceType::WHITE_KING;
+                        pieces[row][col].x=col;
+                        pieces[row][col].y=row;   
+                        boardPos[row][col]=1;                     
                         break;
                     case 'q':
                         pieces[row][col].piece.setTexture(pieceTextures[1]); // z. B. Textur für schwarze Dame
                         pieces[row][col].type=PieceType::BLACK_QUEEN;
+                        pieces[row][col].x=col;
+                        pieces[row][col].y=row;
+                        boardPos[row][col]=2;
                         break;
                     case 'Q':
                         pieces[row][col].piece.setTexture(pieceTextures[7]); // z. B. Textur für weiße Dame
                         pieces[row][col].type=PieceType::WHITE_QUEEN;
+                        pieces[row][col].x=col;
+                        pieces[row][col].y=row;
+                        boardPos[row][col]=1;
                         break;
                     case 'r':
                         pieces[row][col].piece.setTexture(pieceTextures[2]); // z. B. Textur für schwarzen Turm
                         pieces[row][col].type=PieceType::BLACK_ROOK;
+                        pieces[row][col].x=col;
+                        pieces[row][col].y=row;
+                        boardPos[row][col]=2;
                         break;
                     case 'R':
                         pieces[row][col].piece.setTexture(pieceTextures[8]); // z. B. Textur für weißen Turm
                         pieces[row][col].type=PieceType::WHITE_ROOK;
+                        pieces[row][col].x=col;
+                        pieces[row][col].y=row;
+                        boardPos[row][col]=1;
                         break;
                     case 'b':
                         pieces[row][col].piece.setTexture(pieceTextures[3]); // z. B. Textur für schwarzen Läufer
                         pieces[row][col].type=PieceType::BLACK_BISHOP;
+                        pieces[row][col].x=col;
+                        pieces[row][col].y=row;
+                        boardPos[row][col]=2;
                         break;
                     case 'B':
                         pieces[row][col].piece.setTexture(pieceTextures[9]); // z. B. Textur für weißen Läufer
                         pieces[row][col].type=PieceType::WHITE_BISHOP;
+                        pieces[row][col].x=col;
+                        pieces[row][col].y=row;
+                        boardPos[row][col]=1;
                         break;
                     case 'n':
                         pieces[row][col].piece.setTexture(pieceTextures[4]); // z. B. Textur für schwarzen Springer
                         pieces[row][col].type=PieceType::BLACK_KNIGHT;
+                        pieces[row][col].x=col;
+                        pieces[row][col].y=row;
+                        boardPos[row][col]=2;
                         break;
                     case 'N':
                         pieces[row][col].piece.setTexture(pieceTextures[10]); // z. B. Textur für weißen Springer
                         pieces[row][col].type=PieceType::WHITE_KNIGHT;
+                        pieces[row][col].x=col;
+                        pieces[row][col].y=row;
+                        boardPos[row][col]=1;
                         break;
                     case 'p':
                         pieces[row][col].piece.setTexture(pieceTextures[5]); // z. B. Textur für schwarzen Bauer
                         pieces[row][col].type=PieceType::BLACK_PAWN;
+                        pieces[row][col].x=col;
+                        pieces[row][col].y=row;
+                        boardPos[row][col]=2;
                         break;
                     case 'P':
                         pieces[row][col].piece.setTexture(pieceTextures[11]); // z. B. Textur für weißen Bauer
                         pieces[row][col].type=PieceType::WHITE_PAWN;
+                        pieces[row][col].x=col;
+                        pieces[row][col].y=row;
+                        boardPos[row][col]=1;
                         break;
                     default:
                         pieces[row][col].type = PieceType::EMPTY;
+                        boardPos[row][col]=0;
                         break;
                     }
 
@@ -316,24 +333,312 @@ public:
         std::cout << tmp << std::endl;
     }
 
-    bool allowedMove(){
-        // Initialize the first bitboard (White Pawn)
-        bitboards[0] = 0;
-        for (int i = 0; i < 8; i++)
-        {
-            for (int j = 0; j < 8; j++)
-            {
-                if (pieces[i][j].type == PieceType::WHITE_PAWN)
-                {
-                    bitboards[0] |= 1ULL << (i * 8 + j);
+    bool isMoveInList(const std::vector<std::tuple<int, int>>& moves, int target_x, int target_y) {
+        return std::find_if(moves.begin(), moves.end(), [&](const auto& tuple) {
+            return std::get<0>(tuple) == target_x && std::get<1>(tuple) == target_y;
+        }) != moves.end();
+    }
+
+    std::vector<std::tuple<int, int>> generatePossibleMoves(Piece& piece){
+        std::vector<std::tuple<int, int>> moves;
+        switch (piece.type){
+            case PieceType::WHITE_KING:
+                break;
+            case PieceType::BLACK_KING:
+                break;
+            case PieceType::WHITE_ROOK:
+                for (int i=piece.x+1;i<8;i++){
+                    if (boardPos[piece.y][i]==0){
+                        moves.push_back(std::make_tuple(piece.y, i)); 
+                    }
+                    else if(boardPos[piece.y][i]==2){
+                        moves.push_back(std::make_tuple(piece.y, i));
+                        break;
+                    }
+                    else{
+                        break;
+                    }
                 }
-            }
+                for (int i=piece.x-1;i>=0;i--){
+                    if (boardPos[piece.y][i]==0){
+                        moves.push_back(std::make_tuple(piece.y, i)); 
+                    }
+                    else if(boardPos[piece.y][i]==2){
+                        moves.push_back(std::make_tuple(piece.y, i));
+                        break;
+                    }
+                    else{
+                        break;
+                    }
+                }
+                for (int i=piece.y+1;i<8;i++){
+                    if (boardPos[i][piece.x]==0){
+                        moves.push_back(std::make_tuple(i, piece.x)); 
+                    }
+                    else if(boardPos[i][piece.x]==2){
+                        moves.push_back(std::make_tuple(i, piece.x));
+                        break;
+                    }
+                    else{
+                        break;
+                    }
+                }
+                for (int i=piece.y-1;i>=0;i--){
+                    if (boardPos[i][piece.x]==0){
+                        moves.push_back(std::make_tuple(i, piece.x)); 
+                    }
+                    else if(boardPos[i][piece.x]==2){
+                        moves.push_back(std::make_tuple(i, piece.x));
+                        break;
+                    }
+                    else{
+                        break;
+                    }
+                }
+                break;
+            case PieceType::BLACK_ROOK:
+                for (int i=piece.x+1;i<8;i++){
+                    if (boardPos[piece.y][i]==0){
+                        moves.push_back(std::make_tuple(piece.y, i)); 
+                    }
+                    else if(boardPos[piece.y][i]==1){
+                        moves.push_back(std::make_tuple(piece.y, i));
+                        break;
+                    }
+                    else{
+                        break;
+                    }
+                }
+                for (int i=piece.x-1;i>=0;i--){
+                    if (boardPos[piece.y][i]==0){
+                        moves.push_back(std::make_tuple(piece.y, i)); 
+                    }
+                    else if(boardPos[piece.y][i]==1){
+                        moves.push_back(std::make_tuple(piece.y, i));
+                        break;
+                    }
+                    else{
+                        break;
+                    }
+                }
+                for (int i=piece.y+1;i<8;i++){
+                    if (boardPos[i][piece.x]==0){
+                        moves.push_back(std::make_tuple(i, piece.x)); 
+                    }
+                    else if(boardPos[i][piece.x]==1){
+                        moves.push_back(std::make_tuple(i, piece.x));
+                        break;
+                    }
+                    else{
+                        break;
+                    }
+                }
+                for (int i=piece.y-1;i>=0;i--){
+                    if (boardPos[i][piece.x]==0){
+                        moves.push_back(std::make_tuple(i, piece.x)); 
+                    }
+                    else if(boardPos[i][piece.x]==1){
+                        moves.push_back(std::make_tuple(i, piece.x));
+                        break;
+                    }
+                    else{
+                        break;
+                    }
+                }
+                break;
+            case PieceType::WHITE_BISHOP:
+                for (int i=1;i<8;i++){//Unten Rechts
+                    if (piece.y+i > 7 || piece.x+i > 7){
+                        break;
+                    }
+                    else if (boardPos[piece.y+i][piece.x+i]==0){
+                        moves.push_back(std::make_tuple(piece.y+i, piece.x+i)); 
+                    }
+                    else if(boardPos[piece.y+i][piece.x+i]==2){
+                        moves.push_back(std::make_tuple(piece.y+i, piece.x+i));
+                        break;
+                    }
+                    else{
+                        break;
+                    }
+                }
+                for (int i=1;i<0;i++){//Unten Links
+                    if (piece.y+i > 7 || piece.x-i < 0){
+                        break;
+                    }
+                    else if (boardPos[piece.y+i][piece.x-i]==0){
+                        moves.push_back(std::make_tuple(piece.y+i, piece.x-i)); 
+                    }
+                    else if(boardPos[piece.y+i][piece.x-i]==2){
+                        moves.push_back(std::make_tuple(piece.y+i, piece.x-i));
+                        break;
+                    }
+                    else{
+                        break;
+                    }
+                }
+                for (int i=1;i<8;i++){//Oben Rechts
+                    if (piece.y-i < 0 || piece.x+i > 7){
+                        break;
+                    }
+                    else if (boardPos[piece.y-i][piece.x+i]==0){
+                        moves.push_back(std::make_tuple(piece.y-i, piece.x+i)); 
+                    }
+                    else if(boardPos[piece.y-i][piece.x+i]==2){
+                        moves.push_back(std::make_tuple(piece.y-i, piece.x+i));
+                        break;
+                    }
+                    else{
+                        break;
+                    }
+                }
+                for (int i=1;i<0;i++){//Oben Links
+                    if (piece.y-i < 0 || piece.x-i < 0){
+                        break;
+                    }
+                    else if (boardPos[piece.y-i][piece.x-i]==0){
+                        moves.push_back(std::make_tuple(piece.y-i, piece.x-i)); 
+                    }
+                    else if(boardPos[piece.y-i][piece.x-i]==2){
+                        moves.push_back(std::make_tuple(piece.y-i, piece.x-i));
+                        break;
+                    }
+                    else{
+                        break;
+                    }
+                }
+                break;
+            case PieceType::BLACK_BISHOP:
+                break;
+            case PieceType::WHITE_KNIGHT:
+                break;
+            case PieceType::BLACK_KNIGHT:
+                break;
+            case PieceType::WHITE_QUEEN:
+                break;
+            case PieceType::BLACK_QUEEN:
+                break;
+            case PieceType::WHITE_PAWN:
+                break;
+            case PieceType::BLACK_PAWN:
+                break;
+        }  
+        for (const auto& move : moves) {
+                std::cout << "(" << std::get<0>(move) << ", " << std::get<1>(move) << ")" << std::endl;
         }
+        return moves; 
+    }
 
-        uint64_t promotable = RANK_2 & bitboards[0];
-
-        // Calculate valid moves for the white pawn
-        printf("Valid moves: %llu\n | %llu", promotable, bitboards[0]);
+    bool allowedMove(Piece& piece, int target_x, int target_y, int x, int y){
+        std::vector<std::tuple<int, int>> moves;
+        switch (piece.type){
+            case PieceType::WHITE_KING:
+                break;
+            case PieceType::BLACK_KING:
+                break;
+            case PieceType::WHITE_ROOK:
+                moves = generatePossibleMoves(piece);
+                if (isMoveInList(moves, target_y, target_x)){
+                    boardPos[y][x]=0;
+                    piece.y = target_y;
+                    piece.x = target_x;
+                    boardPos[target_y][target_x]=1;
+                    return true;  
+                }
+                break;
+            case PieceType::BLACK_ROOK:
+                moves = generatePossibleMoves(piece);
+                if (isMoveInList(moves, target_y, target_x)){
+                    boardPos[y][x]=0;
+                    piece.y = target_y;
+                    piece.x = target_x;
+                    boardPos[target_y][target_x]=2;
+                    return true;  
+                }
+                break;
+            case PieceType::WHITE_BISHOP:
+                moves = generatePossibleMoves(piece);
+                if (isMoveInList(moves, target_y, target_x)){
+                    boardPos[y][x]=0;
+                    piece.y = target_y;
+                    piece.x = target_x;
+                    boardPos[target_y][target_x]=2;
+                    return true;  
+                }
+                break;
+            case PieceType::BLACK_BISHOP:
+                break;
+            case PieceType::WHITE_KNIGHT:
+                break;
+            case PieceType::BLACK_KNIGHT:
+                break;
+            case PieceType::WHITE_QUEEN:
+                break;
+            case PieceType::BLACK_QUEEN:
+                break;
+            case PieceType::WHITE_PAWN:
+                if (target_x == x && target_y+1 == y && boardPos[target_y][target_x]==0){//Move 1
+                    boardPos[y][x]=0;
+                    piece.y = y-1;
+                    boardPos[target_y][target_x]=1;
+                    return true;
+                }
+                if (target_x == x && target_y+2 == y && boardPos[target_y][target_x]==0 && y==6){//Move 2 on first Pos
+                    boardPos[y][x]=0;
+                    piece.y = y-2;
+                    boardPos[target_y][target_x]=1;
+                    return true;
+                }
+                if (target_x+1 == x && target_y+1 == y && boardPos[target_y][target_x]==2){//Take Left
+                    boardPos[y][x]=0;
+                    piece.y = y-1;
+                    piece.x = x-1;
+                    boardPos[target_y][target_x]=1;
+                    return true;
+                }
+                if (target_x-1 == x && target_y+1 == y && boardPos[target_y][target_x]==2){//Take Right
+                    boardPos[y][x]=0;
+                    piece.y = y-1;
+                    piece.x = x+1;
+                    boardPos[target_y][target_x]=1;
+                    return true;
+                }
+                return false;
+                break;
+            case PieceType::BLACK_PAWN:
+                if (target_x == x && target_y-1 == y && boardPos[target_y][target_x]==0){//Move 1
+                    boardPos[y][x]=0;
+                    piece.y = y+1;
+                    boardPos[target_y][target_x]=2;
+                    std::cout << boardPos[y][x] << std::endl;
+                    std::cout << boardPos[target_y][target_x] << std::endl;
+                    return true;
+                }
+                if (target_x == x && target_y-2 == y && boardPos[target_y][target_x]==0 && y==1){//Move 2 on first Pos
+                    boardPos[y][x]=0;
+                    piece.y = y+2;
+                    boardPos[target_y][target_x]=2;
+                    return true;
+                }
+                if (target_x+1 == x && target_y-1 == y && boardPos[target_y][target_x]==1){//Take Left
+                    boardPos[y][x]=0;
+                    piece.y = y+1;
+                    piece.x = x-1;
+                    boardPos[target_y][target_x]=2;
+                    return true;
+                }
+                if (target_x-1 == x && target_y-1 == y && boardPos[target_y][target_x]==1){//Take Right
+                    boardPos[y][x]=0;
+                    piece.y = y+1;
+                    piece.x = x+1;
+                    boardPos[target_y][target_x]=2;
+                    return true;
+                }
+                return false;
+                break;
+        }
+        moves.clear();
+        return false;
     }
     
     void drawBoard()
@@ -380,6 +685,8 @@ public:
         int pieceStartPositionY;
         int pieceStartIndexX;
         int pieceStartIndexY;
+        sf::RectangleShape* lastHighlightedField = nullptr;
+        sf::Color lastHighlightedFieldColor;
 
 
         while (window.isOpen())
@@ -403,10 +710,11 @@ public:
                 // Listen for mouse drag
                 if (event.type == sf::Event::MouseButtonPressed && !isMoving)
                 {
+                    //initializeBoard();
                     sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
                     // Get piece size
                     int fieldSize = window.getSize().x < window.getSize().y ? window.getSize().x / 8 : window.getSize().y / 8;
-                    
+
                     for (int i = 0; i < 8; i++)
                     {
                         for (int j = 0; j < 8; j++)
@@ -419,6 +727,15 @@ public:
                                 pieceStartPositionY = movingPiece->piece.getPosition().y;
                                 pieceStartIndexX = i;
                                 pieceStartIndexY = j;
+
+                                std::vector<std::tuple<int, int>> moves = generatePossibleMoves(*movingPiece);
+
+                                for (const auto& move : moves) {
+                                    // Highlight the move field
+                                    sf::RectangleShape field = board[get<0>(move)][get<1>(move)];
+                                    field.setFillColor(sf::Color(186,202,68));
+                                }
+                                drawBoard();
                             }
                         }
                     }
@@ -426,7 +743,6 @@ public:
 
 
                 if (isMoving){
-                    initializeBoard();
                     sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
                     movingPiece->piece.setPosition(mousePosition.x - movingPiece->piece.getGlobalBounds().width / 2, mousePosition.y - movingPiece->piece.getGlobalBounds().height / 2);
                     
@@ -434,10 +750,17 @@ public:
 
                     sf::RectangleShape* highlightedField = &board[vector.y][vector.x];
 
-                    highlightedField->setFillColor(sf::Color(186,202,68));
+                    highlightedField->setFillColor(sf::Color(211, 221, 135));
+                    
+                    if (lastHighlightedField != nullptr) {
+                        lastHighlightedField->setFillColor(lastHighlightedFieldColor);
+                    }
+
+                    lastHighlightedField = highlightedField;
+                    lastHighlightedFieldColor = highlightedField->getFillColor();
                 }
 
-                if (event.type == sf::Event::MouseButtonReleased && isMoving)
+                if (event.type == sf::Event::MouseButtonReleased)
                 {
                     isMoving = false;
                     sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
@@ -446,36 +769,32 @@ public:
                     int targetRow = (mousePosition.y - (window.getSize().y - window.getSize().x) / 2) / (window.getSize().x / 8);
                     int targetCol = (mousePosition.x - (window.getSize().x - window.getSize().y) / 2) / (window.getSize().y / 8);
 
-                    printf("Piece Type: %d\n", pieces[targetRow][targetCol].type);
+                    isAllowed = false;
+                    isAllowed = allowedMove(*movingPiece, targetCol, targetRow, movingPiece->x, movingPiece->y);
+
                     // Check if the target field is valid
-                    if (targetRow >= 0 && targetRow < 8 && targetCol >= 0 && targetCol < 8)
+                    if (targetRow >= 0 && targetRow < 8 && targetCol >= 0 && targetCol < 8 && isAllowed)
                     {
                         // TODO: Check if the move is valid
                         // Move the piece to the target field
                         movingPiece->piece.setPosition(targetCol * window.getSize().x / 8, targetRow * window.getSize().y / 8);
                         //TODO: Empty does not work!
-                        bool isAllowed = allowedMove();
                         // if (pieces[targetRow][targetCol].type == PieceType::EMPTY && pieceStartIndexX != targetRow && pieceStartIndexY != targetCol) {
                             pieces[targetRow][targetCol] = *movingPiece;
                             pieces[targetRow][targetCol].piece.setPosition(targetCol * window.getSize().x / 8, targetRow * window.getSize().y / 8);
                             pieces[targetRow][targetCol].piece.setScale((float)window.getSize().x / 8 / pieceTextures[0].getSize().x, (float)window.getSize().y / 8 / pieceTextures[0].getSize().y);
                             movingPiece->type = PieceType::EMPTY;
-                            printf("Piece Type: %d\n", pieces[targetRow][targetCol].type);
                             movingPiece->piece.setPosition(pieceStartPositionX, pieceStartPositionY);
-                            printf("Piece Type bro: %d\n", movingPiece->type);
                             movingPiece->piece.setTextureRect(sf::IntRect());
-                            reinterpret();
                         // }
                     }
                     else
                     {
                         // Move the piece back to its original position
-                        movingPiece->piece.setPosition(movingPiece->piece.getPosition().x, movingPiece->piece.getPosition().y);
+                        movingPiece->piece.setPosition(pieceStartPositionX, pieceStartPositionY);
                     }
-                    
-                    
-                    printf("Mouse position: %d, %d\n", mousePosition.x, mousePosition.y);
-                    movingPiece->piece.setPosition(mousePosition.x - movingPiece->piece.getGlobalBounds().width / 2, mousePosition.y - movingPiece->piece.getGlobalBounds().height / 2);
+                    reinterpret();
+                    initializeBoard();
                     movingPiece = nullptr;
                 }
             }
