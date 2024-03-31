@@ -6,7 +6,10 @@
 
 <br />
 <div align="center">
+<picture>
+<source srcset="images/logo-white.svg" media="(prefers-color-scheme: dark)">
 <img src="images/logo.svg" width="300">
+</picture>
 
 <h3 align="center">Blitz Chess</h3>
 <p align="center">Blazingly fast chess engine.</p>
