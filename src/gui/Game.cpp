@@ -53,9 +53,15 @@ public:
     // Create a transparent texture for empty fields
     sf::Texture emptyTexture;
     bool isAllowed;
+    bool castleK=true;
+    bool castleQ=true;
+    bool castlek=true;
+    bool castleq=true;
+    std::tuple<int,int> lastPosition;
+    sf::Texture leer;
 
     Game()
-        : window(sf::VideoMode(800, 800), "Blitz Chess"), position("rnbqkbnr/pppppppp/8/2R5/3Q4/7b/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+        : window(sf::VideoMode(800, 800), "Blitz Chess"), position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
     {
         loadTextures();
         initializeBoard();
@@ -103,6 +109,7 @@ public:
 
     void interpret()
     {
+        leer.create(1, 1);
         int row = 0; // Starten Sie bei der letzten Reihe (Zeile 8)
         int col = 0; // Starten Sie in der ersten Spalte (A)
 
@@ -121,6 +128,7 @@ public:
             }
             else
             {
+                
                 if (isdigit(c)) {
                     for (int i = 0; i < c - '0'; i++) {
                         pieces[row][col].type = PieceType::NONE;
@@ -235,17 +243,16 @@ public:
                     pieces[row][col].piece.setPosition(boardX + col * fieldSize, boardY + row * fieldSize);
                     col++;
                 }
-                }
+            }
         }
     }
 
-    void reinterpret(){
+    std::string reinterpret(){
         std::string token = position.substr(position.find(' '),position.length()-1);
         int count=1;
         std::string tmp="";
         for (int i=0;i<8;i++){
             for (int j=0;j<8;j++){
-                if (board[i][j].getGlobalBounds().intersects(pieces[i][j].piece.getGlobalBounds())){
                     switch (pieces[i][j].type){
                         case PieceType::NONE:
                             break;
@@ -309,7 +316,8 @@ public:
                            tmp+="p";
                            count=0;
                            break;
-                    }
+                        default:
+                            PieceType::NONE;
                 }
                 count++;
                 if (j==7){
@@ -320,8 +328,7 @@ public:
             }
         }
         tmp+=token;
-        position = tmp;
-        std::cout << position << std::endl;
+        return tmp;
     }
 
     bool isMoveInList(const std::vector<std::tuple<int, int>>& moves, int target_x, int target_y) {
@@ -361,6 +368,18 @@ public:
                 }
                 if (pieces[piece.y+1][piece.x-1].color != piece.color && piece.y+1<8 && piece.x-1>=0){
                     moves.push_back(std::make_tuple(piece.y+1, piece.x-1));
+                }
+                if (piece.type==PieceType::BLACK_KING && castlek && pieces[piece.y][piece.x+1].type == PieceType::NONE && pieces[piece.y][piece.x+2].type == PieceType::NONE){
+                    moves.push_back(std::make_tuple(piece.y, piece.x+2));
+                }
+                if (piece.type==PieceType::BLACK_KING && castleq && pieces[piece.y][piece.x-1].type == PieceType::NONE && pieces[piece.y][piece.x-2].type == PieceType::NONE && pieces[piece.y][piece.x-3].type == PieceType::NONE){
+                    moves.push_back(std::make_tuple(piece.y, piece.x-2));
+                }
+                if (piece.type==PieceType::WHITE_KING && castleK && pieces[piece.y][piece.x+1].type == PieceType::NONE && pieces[piece.y][piece.x+2].type == PieceType::NONE){
+                    moves.push_back(std::make_tuple(piece.y, piece.x+2));
+                }
+                if (piece.type==PieceType::WHITE_KING && castleQ && pieces[piece.y][piece.x-1].type == PieceType::NONE && pieces[piece.y][piece.x-2].type == PieceType::NONE && pieces[piece.y][piece.x-3].type == PieceType::NONE){
+                    moves.push_back(std::make_tuple(piece.y, piece.x-2));
                 }
                 break;
             case PieceType::WHITE_ROOK:
@@ -619,13 +638,19 @@ public:
                 if (piece.y==6 && pieces[piece.y-2][piece.x].type == PieceType::NONE && pieces[piece.y-1][piece.x].type == PieceType::NONE){
                     moves.push_back(std::make_tuple(piece.y-2, piece.x)); 
                 }
-                if (pieces[piece.y-1][piece.x].type == PieceType::NONE && (piece.y-1)>0){
+                if (pieces[piece.y-1][piece.x].type == PieceType::NONE && (piece.y-1)>=0){
                     moves.push_back(std::make_tuple(piece.y-1, piece.x));
                 }
-                if (pieces[piece.y-1][piece.x+1].color == oppositeColor && (piece.y-1)>0){
+                if (pieces[piece.y-1][piece.x+1].color == oppositeColor && (piece.y-1)>=0){
                     moves.push_back(std::make_tuple(piece.y-1, piece.x+1));
                 }
-                if (pieces[piece.y-1][piece.x-1].color == oppositeColor && (piece.y-1)>0){
+                if (pieces[piece.y-1][piece.x-1].color == oppositeColor && (piece.y-1)>=0){
+                    moves.push_back(std::make_tuple(piece.y-1, piece.x-1));
+                }
+                if (pieces[piece.y][piece.x+1].color == oppositeColor && (piece.y-1)>0 && pieces[piece.y][piece.x+1].enPassant==true){
+                    moves.push_back(std::make_tuple(piece.y-1, piece.x+1));
+                }
+                if (pieces[piece.y][piece.x-1].color == oppositeColor && (piece.y-1)>0 && pieces[piece.y][piece.x-1].enPassant==true){
                     moves.push_back(std::make_tuple(piece.y-1, piece.x-1));
                 }
                 break;
@@ -642,13 +667,14 @@ public:
                 if (pieces[piece.y+1][piece.x-1].color == oppositeColor && (piece.y+1)>0){
                     moves.push_back(std::make_tuple(piece.y+1, piece.x-1));
                 }
+                if (pieces[piece.y][piece.x+1].color == oppositeColor && (piece.y+1)>0 && pieces[piece.y][piece.x+1].enPassant==true){
+                    moves.push_back(std::make_tuple(piece.y+1, piece.x+1));
+                }
+                if (pieces[piece.y][piece.x-1].color == oppositeColor && (piece.y+1)>0 && pieces[piece.y][piece.x-1].enPassant==true){
+                    moves.push_back(std::make_tuple(piece.y+1, piece.x-1));
+                }
                 break;
         }  
-        
-        
-            for (const auto& move : moves) {
-                cout << "(" << get<0>(move) << ", " << get<1>(move) << ")" << endl;
-            }
         return moves; 
     }
 
@@ -656,24 +682,41 @@ public:
         std::vector<std::tuple<int, int>> moves = generatePossibleMoves(piece);
         if (isMoveInList(moves, target_y, target_x)) {
             // Reset old position to color none
+            if(piece.type == PieceType::BLACK_PAWN && piece.y == target_y-2){
+                piece.enPassant=true;
+            }
+            else if(piece.type == PieceType::WHITE_PAWN && piece.y == target_y+2){
+                piece.enPassant=true;
+            }
+            if(piece.type == PieceType::WHITE_PAWN && target_x==piece.x+1 &&  pieces[get<0>(lastPosition)][get<1>(lastPosition)].enPassant==true || piece.type == PieceType::WHITE_PAWN && target_x==piece.x-1 && pieces[get<0>(lastPosition)][get<1>(lastPosition)].enPassant==true){
+                pieces[get<0>(lastPosition)][get<1>(lastPosition)].type = PieceType::NONE;
+                pieces[get<0>(lastPosition)][get<1>(lastPosition)].color = Color::NONE;
+                pieces[get<0>(lastPosition)][get<1>(lastPosition)].piece.setTextureRect(sf::IntRect());
+            }
+            if(piece.type == PieceType::BLACK_PAWN && target_x==piece.x+1 && pieces[get<0>(lastPosition)][get<1>(lastPosition)].enPassant==true || piece.type == PieceType::BLACK_PAWN && target_x==piece.x-1 && pieces[get<0>(lastPosition)][get<1>(lastPosition)].enPassant==true){
+                pieces[get<0>(lastPosition)][get<1>(lastPosition)].type = PieceType::NONE;
+                pieces[get<0>(lastPosition)][get<1>(lastPosition)].color = Color::NONE;
+                pieces[get<0>(lastPosition)][get<1>(lastPosition)].piece.setTextureRect(sf::IntRect());
+            }
+            if(piece.type == PieceType::BLACK_KING && target_x==piece.x+2){//k
+                pieces[0][5] = pieces[0][7];
+                pieces[0][7].color = Color::NONE;
+                pieces[0][7].type = PieceType::NONE;
+                pieces[0][7].piece.setTextureRect(sf::IntRect());
+            }
+            if(piece.type == PieceType::BLACK_ROOK && piece.x==7){
+                castlek=false;
+            }
             pieces[target_y][target_x].color = piece.color;
-            // pieces[target_y][target_x].type = piece.type;
+            pieces[target_y][target_x].type = piece.type;
             pieces[piece.y][piece.x].color = Color::NONE;
-            // pieces[piece.y][piece.x].type = PieceType::NONE;
-            if(piece.type == PieceType::BLACK_PAWN){
-                piece.y
-            }
-            if(piece.type == PieceType::WHITE_PAWN){
-
-            }
+            pieces[piece.y][piece.x].type = PieceType::NONE;
+            pieces[get<0>(lastPosition)][get<1>(lastPosition)].enPassant = false;
+            lastPosition = std::make_tuple(target_y,target_x);
             piece.y = target_y;
             piece.x = target_x;
-            for (int i = 0; i < 8; ++i) {
-                for (int j = 0; j < 8; ++j) {
-            std::cout << static_cast<int>(pieces[i][j].color) << " ";
-            }
-        std::cout << std::endl;
-    }
+            position = reinterpret();
+            std::cout << position << endl;
             return true;  
         }
         // NOTE: Maybe important???????
@@ -832,10 +875,9 @@ public:
                         // Move the piece back to its original position
                         movingPiece->piece.setPosition(pieceStartPositionX, pieceStartPositionY);
                     }
-                    reinterpret();
-                    interpret();
                     initializeBoard();
                     movingPiece = nullptr;
+                    interpret();    
                 }
             }
             drawBoard();
