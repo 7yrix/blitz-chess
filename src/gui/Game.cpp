@@ -562,7 +562,7 @@ public:
                     boardPos[y][x]=0;
                     piece.y = target_y;
                     piece.x = target_x;
-                    boardPos[target_y][target_x]=2;
+                    boardPos[target_y][target_x]=1;
                     return true;  
                 }
                 break;
