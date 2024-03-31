@@ -98,6 +98,7 @@ class Game {
   std::string position;            // Position in FEN
   sf::RectangleShape board[8][8];  // Array für die Schachbrettfelder
   std::map<char, sf::Texture> textures;   // Array für die Texturen der Figuren
+	sf::Font font;
   // Initialize the pieces array with -1
   Piece pieces[8][8] = {
       {{.piece = sf::Sprite(),
@@ -111,8 +112,13 @@ class Game {
       : window(sf::VideoMode(800, 800), "Blitz Chess"),
         position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") {
 		loadTextures();
+		loadFont();
     initializeBoard();
   }
+
+	void loadFont() {
+		font.loadFromFile(executableDirectory / "assets/font.otf");
+	}
 	
 	void loadTextures() {
 		for (auto const& [key, val] : TextureMap) {
@@ -123,22 +129,13 @@ class Game {
 	}
 
   void initializeBoard() {
-    int windowWidth = window.getSize().x;
-    int windowHeight = window.getSize().y;
-
-    // Since we need 64 equally sized fields, we need to determine which size is
-    // smaller
-    float fieldSize =
-        windowWidth < windowHeight ? windowWidth / 8 : windowHeight / 8;
-
-    // We want to center the board in the middle of the window
-    int boardY = (windowHeight - fieldSize * 8) / 2;
-    int boardX = (windowWidth - fieldSize * 8) / 2;
+		float fieldSize = getFieldSize();
 
     for (int i = 0; i < 8; ++i) {
       for (int j = 0; j < 8; ++j) {
+				sf::Vector2u position = getFieldPosition(j, i);
         board[i][j] = sf::RectangleShape(sf::Vector2f(fieldSize, fieldSize));
-        board[i][j].setPosition(boardX + j * fieldSize, boardY + i * fieldSize);
+        board[i][j].setPosition(position.x, position.y);
         // Check if this field should be white
         if ((i + j) % 2 == 0) {
           board[i][j].setFillColor(sf::Color(238, 238, 210));
@@ -179,19 +176,16 @@ class Game {
 					pieces[row][col].piece.setTexture(texture);
 					pieces[row][col].x = col;
 					pieces[row][col].y = row;
-          float fieldSize = window.getSize().x < window.getSize().y
-                              ? window.getSize().x / 8
-                              : window.getSize().y / 8;
+          float fieldSize = getFieldSize();
 
-          float boardY = (window.getSize().y - fieldSize * 8) / 2;
-          float boardX = (window.getSize().x - fieldSize * 8) / 2;
+					sf::Vector2u position = getFieldPosition(col, row);
 
           float scale = (float)fieldSize / texture.getSize().x;
 
           pieces[row][col].piece.setScale(
               scale, scale);  // Skalieren Sie die Größe der Sprites
-          pieces[row][col].piece.setPosition(boardX + col * fieldSize,
-                                             boardY + row * fieldSize);
+          pieces[row][col].piece.setPosition(position.x,
+                                             position.y);
 					col++;
         }
       }
@@ -415,19 +409,6 @@ class Game {
     }
   }
 
-  sf::Vector2i getCoordinateIndex(int x, int y) {
-    float fieldSize = window.getSize().x < window.getSize().y
-                          ? window.getSize().x / 8
-                          : window.getSize().y / 8;
-    int boardY = (window.getSize().y - fieldSize * 8) / 2;
-    int boardX = (window.getSize().x - fieldSize * 8) / 2;
-
-    int row = (y - boardY) / fieldSize;
-    int col = (x - boardX) / fieldSize;
-
-    return sf::Vector2(col, row);
-  }
-
   void run() {
     interpret();
     sf::Event event;
@@ -512,49 +493,74 @@ class Game {
           // Check if the target field is valid
           if (targetRow >= 0 && targetRow < 8 && targetCol >= 0 &&
               targetCol < 8 && (targetRow != movingPiece->y || targetCol != movingPiece->x) && isValidMove) {
-            // TODO: Check if the move is valid
+						// TODO: Check if the move is valid
             // Move the piece to the target field
-            movingPiece->piece.setPosition(targetCol * window.getSize().x / 8,
-                                           targetRow * window.getSize().y / 8);
+            
 
             // pieces[targetRow][targetCol] = *movingPiece;
+						sf::Vector2u targetPosition = getFieldPosition(targetCol, targetRow);
+
 						pieces[targetRow][targetCol].piece = movingPiece->piece;
-						pieces[targetRow][targetCol].piece.setPosition(
-                targetCol * window.getSize().x / 8,
-                targetRow * window.getSize().y / 8);
+						pieces[targetRow][targetCol].piece.setPosition(targetPosition.x, targetPosition.y);
 						pieces[targetRow][targetCol].type = movingPiece->type;
 						pieces[targetRow][targetCol].color = movingPiece->color;
 						
 						
             movingPiece->type = PieceType::EMPTY;
-            movingPiece->piece.setPosition(pieceStartPositionX,
-                                           pieceStartPositionY);
+						sf::Vector2u position = getFieldPosition(movingPiece->x, movingPiece->y);
+						movingPiece->piece.setPosition(position.x, position.y);
             movingPiece->piece.setTextureRect(sf::IntRect());
             // reinterpret();
           } else {
-						sf::Vector2u fieldPosition = getFieldPosition(movingPiece->x, movingPiece->y);
+						sf::Vector2u position = getFieldPosition(movingPiece->x, movingPiece->y);
             // Move the piece back to its original position
-            movingPiece->piece.setPosition(fieldPosition.x, fieldPosition.y);
+            movingPiece->piece.setPosition(position.x, position.y);
           }
 
           movingPiece = nullptr;
         }
       }
       drawBoard();
+			drawFileAndRankNames();
       drawPieces();
       window.display();
     }
   }
 
+	void drawFileAndRankNames() {
+		float fieldSize = getFieldSize();
+		float boardY = (window.getSize().y - fieldSize * 8) / 2 + 25;
+		float boardX = (window.getSize().x - fieldSize * 8) / 2 + 25;
+		for (int i = 0; i < 8; i++) {
+			sf::Text text;
+			text.setFont(font);
+			text.setString(std::string(1, 'A' + i));
+			text.setCharacterSize(24);
+			text.setFillColor(sf::Color::White);
+			text.setPosition(boardX + i * fieldSize + fieldSize / 2 - 10, boardY - 30);
+			window.draw(text);
+		}
+
+		for (int i = 0; i < 8; i++) {
+			sf::Text text;
+			text.setFont(font);
+			text.setString(std::to_string(8 - i));
+			text.setCharacterSize(24);
+			text.setFillColor(sf::Color::White);
+			text.setPosition(boardX - 30, boardY + i * fieldSize + fieldSize / 2 - 10);
+			window.draw(text);
+		}
+	}
+
 	sf::Vector2u getFieldPosition(int x, int y) {
 		float fieldSize = getFieldSize();
-		float boardY = (window.getSize().y - fieldSize * 8) / 2;
-		float boardX = (window.getSize().x - fieldSize * 8) / 2;
+		float boardY = (window.getSize().y - fieldSize * 8) / 2 + 25;
+		float boardX = (window.getSize().x - fieldSize * 8) / 2 + 25;
 		return sf::Vector2u(boardX + x * fieldSize, boardY + y * fieldSize);
 	}
 
 	float getFieldSize() {
-		return window.getSize().x < window.getSize().y ? window.getSize().x / 8 : window.getSize().y / 8;
+		return (window.getSize().x < window.getSize().y ? window.getSize().x / 8 : window.getSize().y / 8) - 50 / 8;
 	}
 };
 
