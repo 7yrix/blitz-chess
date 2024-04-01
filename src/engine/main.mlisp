@@ -200,6 +200,45 @@
 	// Dump the rest of the string
 	[write 1 [+ fmt lastPercentPosition] [- i lastPercentPosition]]]
 
+// [defunc [constructboard board]
+// 	[define row1 8]
+// 	[define col1 0]
+// 	[define i1 0]
+// 	[define current1 0]
+// 	[printf "   a b c d e f g h\n ┌─────────────────┐\n%d│" row1]
+// 	[while [!= i1 63]
+// 		[set! current1 [char board i1]]
+// 		[if [== [% i1 8] 0] // Check if it's a "/"
+// 			[set! row1 [- row1 1]]
+// 			[set! col1 0]
+// 			[printf " │\n%d│" row1]]
+// 		[printstr " "]
+// 		[if [== current1 1] // p
+// 			[printstr "♙"]]
+// 		[if [== current1 2] // k
+// 			[printstr "♔"]]
+// 		[if [== current1 3] // r
+// 			[printstr "♖"]]
+// 		[if [== current1 4] // n
+// 			[printstr "♘"]]
+// 		[if [== current1 5] // q
+// 			[printstr "♕"]]
+// 		[if [== current1 6] // b
+// 			[printstr "♗"]]
+// 		[if [== current1 7] // P
+// 			[printstr "♟︎"]]
+// 		[if [== current1 8] // K
+// 			[printstr "♚"]]
+// 		[if [== current1 9] // R
+// 			[printstr "♜"]]
+// 		[if [== current1 10] // N
+// 			[printstr "♞"]]
+// 		[if [== current1 11] // Q
+// 			[printstr "♛"]]
+// 		[if [== current1 12] // B
+// 			[printstr "♝"]]
+// 		[set! i1 [+ i1 1]]]]
+
 [defunc [main argc argv]
 	[premalloc 0]
 	[define fen [strarrayat argv 1]] // Get the fen string from cmdline
@@ -209,6 +248,22 @@
 	[define col 0]
 
 	[define output [malloc 16]] // Reserve space for board
+
+	// Character types:
+	// p - pawn - 1
+	// k - king - 2
+	// r - rook - 3
+	// n - knight - 4
+	// q - queen - 5
+	// b - bishop - 6
+	// P - pawn - 7
+	// K - king - 8
+	// R - rook - 9
+	// N - knight - 10
+	// Q - queen - 11
+	// B - bishop - 12
+
+	[define board [malloc 64]]
 
 	[define i 0]
 	[define current 0]
@@ -230,29 +285,45 @@
 			[set! col [+ col 1]]]
 		[if [and [!= [isdigit current] 1] [!= current 47]]
 			[printstr " "]
+			[define boardOffset [+ board col]]
+			[define rowNumber [- 8 row]]
+			[define rowOffset [* rowNumber 8]]
+			[set! boardOffset [+ boardOffset rowOffset]]
 			[if [== current 112] // p
+				[setbyte boardOffset 1]
 				[printstr "♙"]]
 			[if [== current 107] // k
+				[setbyte boardOffset 2]
 				[printstr "♔"]]
 			[if [== current 114] // r
+				[setbyte boardOffset 3]
 				[printstr "♖"]]
 			[if [== current 110] // n
+				[setbyte boardOffset 4]
 				[printstr "♘"]]
 			[if [== current 113] // q
+				[setbyte boardOffset 5]
 				[printstr "♕"]]
 			[if [== current 98] // b
+				[setbyte boardOffset 6]
 				[printstr "♗"]]
 			[if [== current 80] // P
+				[setbyte boardOffset 7]
 				[printstr "♟︎"]]
 			[if [== current 75] // K
+				[setbyte boardOffset 8]
 				[printstr "♚"]]
 			[if [== current 82] // R
+				[setbyte boardOffset 9]
 				[printstr "♜"]]
 			[if [== current 78] // N
+				[setbyte boardOffset 10]
 				[printstr "♞"]]
 			[if [== current 81] // Q
+				[setbyte boardOffset 11]
 				[printstr "♛"]]
 			[if [== current 66] // B
+				[setbyte boardOffset 12]
 				[printstr "♝"]]
 			]
 		[set! i [+ i 1]]]
@@ -266,6 +337,36 @@
 
 	[substr output from 0 2]
 	[substr output to 2 4]
+
+	// Convert the from character to a column number
+	// Since they range from a to h, we can just subtract 97 from the ascii value to get the column number
+	[define fromCol [- [char from 0] 97]]
+	[define fromRowChar [- [char from 1] 48]]
+	[set! fromRowChar [- 8 fromRowChar]]
+	[define fromRow [* fromRowChar 8]]
+
+	[define fromOffset [+ fromCol fromRow]]
+
+	[define toCol [- [char to 0] 97]]
+	[define toRowChar [- [char to 1] 48]]
+	[set! toRowChar [- 8 toRowChar]]
+	[define toRow [* toRowChar 8]]
+
+	[define toOffset [+ toCol toRow]]
+
+	[define fromPiece [derefb [+ board fromOffset]]]
+	[define toPiece [derefb [+ board toOffset]]]
+
+	[if [== fromPiece 0]
+		[printf "There is no piece at %s\n" from]
+		[return 0]]
+
+	[if [== toPiece 0]
+		[setbyte [+ board toOffset] fromPiece]
+		[setbyte [+ board fromOffset] 0]
+		[printf "Moved piece from %s\n" from]]
+
+	// [constructboard board]
 
 	[printf "From: %s\n" from]
 	[printf "To  : %s\n" to]
