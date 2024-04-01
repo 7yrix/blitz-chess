@@ -59,12 +59,24 @@ public:
     bool castleq=true;
     std::tuple<int,int> lastPosition;
     sf::Texture leer;
+    Color toMove=Color::WHITE;
+    int whiteKingX=4;
+    int whiteKingY=7;
+    int blackKingX=4;
+    int blackKingY=0;
 
     Game()
         : window(sf::VideoMode(800, 800), "Blitz Chess"), position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
     {
         loadTextures();
         initializeBoard();
+    }
+
+    void printMoves(const std::vector<std::tuple<int, int>>& moves) {
+        for(const auto& move : moves) {
+            std::cout << "(" << std::get<0>(move) << ", " << std::get<1>(move) << ") ";
+        }
+        std::cout << std::endl;
     }
 
     void loadTextures()
@@ -679,9 +691,14 @@ public:
         return moves; 
     }
 
-    bool allowedMove(Piece& piece, int target_x, int target_y){ 
-        std::vector<std::tuple<int, int>> moves = generatePossibleMoves(piece);
+    bool allowedMove(Piece& piece, int target_x, int target_y, std::vector<std::tuple<int, int>> moves){
         if (isMoveInList(moves, target_y, target_x)) {
+            if(piece.color==Color::BLACK && toMove==Color::WHITE || piece.color==Color::WHITE && toMove==Color::BLACK){
+                return false;
+            }
+            if(piece.x==target_x && piece.y==target_y){
+                return false;
+            }
             // Reset old position to color none
             if(piece.type == PieceType::BLACK_PAWN && piece.y == target_y-2){
                 piece.enPassant=true;
@@ -705,21 +722,84 @@ public:
             if(piece.type == PieceType::BLACK_ROOK && piece.x==7){
                 castlek=false;
             }
+            if(piece.type == PieceType::BLACK_KING && target_x==piece.x-2){//q
+                pieces[0][3] = pieces[0][0];
+                pieces[0][0].color = Color::NONE;
+                pieces[0][0].type = PieceType::NONE;
+            }
+            if(piece.type == PieceType::BLACK_ROOK && piece.x==0){
+                castlek=false;
+            }
+            if(piece.type == PieceType::WHITE_KING && target_x==piece.x+2){//K
+                pieces[7][5] = pieces[7][7];
+                pieces[7][7].color = Color::NONE;
+                pieces[7][7].type = PieceType::NONE;
+            }
+            if(piece.type == PieceType::WHITE_ROOK && piece.x==7){
+                castleK=false;
+            }
+            if(piece.type == PieceType::WHITE_KING && target_x==piece.x-2){//Q
+                pieces[7][3] = pieces[7][0];
+                pieces[7][0].color = Color::NONE;
+                pieces[7][0].type = PieceType::NONE;
+            }
+            if(piece.type == PieceType::WHITE_ROOK && piece.x==0){
+                castleQ=false;
+            }
+            if(piece.type == PieceType::BLACK_KING){
+                castlek=false;
+                castleq=false;
+                blackKingX = target_x;
+                blackKingY = target_y;
+            }
+            if(piece.type == PieceType::WHITE_KING){
+                castleK=false;
+                castleQ=false;
+                whiteKingX = target_x;
+                whiteKingY = target_y;
+            }
             pieces[target_y][target_x].color = piece.color;
             pieces[target_y][target_x].type = piece.type;
             pieces[piece.y][piece.x].color = Color::NONE;
             pieces[piece.y][piece.x].type = PieceType::NONE;
+            Color tmp = toMove==Color::BLACK ? Color::WHITE : Color::BLACK;
+            std::vector<std::tuple<int, int>> check = movesList(tmp);
+            if(toMove==Color::BLACK && isMoveInList(check, blackKingY, blackKingX)){
+                return false;
+            }
+            if(toMove==Color::WHITE && isMoveInList(check, whiteKingY, whiteKingX)){
+                return false;
+            }
             pieces[get<0>(lastPosition)][get<1>(lastPosition)].enPassant = false;
             lastPosition = std::make_tuple(target_y,target_x);
-            piece.y = target_y;
-            piece.x = target_x;
             position = reinterpret();
-            std::cout << position << endl;
+            toMove == Color::BLACK ? toMove=Color::WHITE : toMove=Color::BLACK;
+            for(int i=0;i<8;i++){
+                for(int j=0;j<8;j++){
+                    std::cout << static_cast<int>(pieces[i][j].type) << " ";
+                }
+                cout<<endl;
+            }
+            cout<<"-----------------" << endl;
             return true;  
         }
         // NOTE: Maybe important???????
         // moves.clear();
         return false;
+    }
+
+    std::vector<std::tuple<int, int>> movesList(Color color){
+        std::vector<std::tuple<int,int>> tmp;
+        std::vector<std::tuple<int,int>> list;
+        for(int i=0;i<8;i++){
+            for(int j=0;j<8;j++){
+                if (pieces[i][j].color==color){
+                    tmp=generatePossibleMoves(pieces[i][j]);
+                    list.insert(list.end(), tmp.begin(), tmp.end());
+                }
+            }
+        }
+        return list;
     }
     
     void drawBoard()
@@ -850,10 +930,10 @@ public:
                     int targetCol = (mousePosition.x - (window.getSize().x - window.getSize().y) / 2) / (window.getSize().y / 8);
 
                     isAllowed = false;
-                    isAllowed = allowedMove(*movingPiece, targetCol, targetRow);
+                    isAllowed = allowedMove(*movingPiece, targetCol, targetRow, generatePossibleMoves(*movingPiece));
 
                     // Check if the target field is valid
-                    if (targetRow >= 0 && targetRow < 8 && targetCol >= 0 && targetCol < 8 && isAllowed)
+                    if (isAllowed)
                     {
                         // TODO: Check if the move is valid
                         // Move the piece to the target field
