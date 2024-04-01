@@ -20,6 +20,13 @@
 	[asm "mov edx, dword [ebp+8]"] // get len
 	[asm "int 0x80"]]
 
+[defunc [read fd buf len]
+	[asm "mov eax, 3"]
+	[asm "mov ebx, dword [ebp+16]"] // get fd
+	[asm "mov ecx, dword [ebp+12]"] // get buf
+	[asm "mov edx, dword [ebp+8]"] // get len
+	[asm "int 0x80"]]
+
 // We're in 32 bit mode, so we need to split the shift into two instructions. (shld and shl)
 [defunc [shl64 numh numl shift_amount] // 16 12 8
 	[asm "mov ecx, dword [ebp+8]"] // Get the shift amount
@@ -128,6 +135,71 @@
 		[return 1]
 		[return 0]]]
 
+[defunc [substr str buf start end]
+	[define i 0]
+	[while [!= start end]
+		[setbyte [+ buf i] [char str start]]
+		[set! start [+ start 1]]
+		[set! i [+ i 1]]]
+	[setbyte [+ buf i] 0]]
+
+[defunc [printf fmt args]
+	[define i 0]
+	[define lastWasPercent 0]
+	[define lastPercentPosition 0]
+	[define lastWasBackslash 0]
+	[define varCount 2] // -12
+	[while [!= [char fmt i] 0]
+		[if [== lastWasPercent 1]
+			[if [== [char fmt i] 115] // s
+				[printstr args]
+				[set! lastWasPercent 0]]
+			[if [== [char fmt i] 99] // c
+				[printchar args]
+				[set! lastWasPercent 0]]
+			[if [== [char fmt i] 100] // d
+				[printint args]
+				[set! lastWasPercent 0]]
+			[if [== [char fmt i] 37]
+				[printchar 37]
+				[set! lastWasPercent 0]]]
+		[if [== lastWasBackslash 1]
+			[if [== [char fmt i] 92] // \
+				[printchar 92]
+				[set! lastWasBackslash 0]]
+			[if [== [char fmt i] 110] // n
+				[printchar 10]
+				[set! lastWasBackslash 0]]
+			[if [== [char fmt i] 116] // t
+				[printchar 9]
+				[set! lastWasBackslash 0]]
+			[if [== [char fmt i] 114] // r
+				[printchar 13]
+				[set! lastWasBackslash 0]]
+			[if [== [char fmt i] 37]
+				[printchar 37]
+				[set! lastWasBackslash 0]]]
+		// Capture %
+		[if [== [char fmt i] 37] // %
+			[if [== lastWasPercent 1]
+				[printchar 37]
+				[set! lastWasPercent 0]]
+			[if [== lastWasPercent 0]
+				[write 1 [+ fmt lastPercentPosition] [- i lastPercentPosition]]
+				[set! lastPercentPosition [+ i 2]]
+				[set! lastWasPercent 1]]]
+		[if [== [char fmt i] 92] // \
+			[if [== lastWasBackslash 1]
+				[printchar 92]
+				[set! lastWasBackslash 0]]
+			[if [== lastWasBackslash 0]
+				[write 1 [+ fmt lastPercentPosition] [- i lastPercentPosition]]
+				[set! lastPercentPosition [+ i 2]]
+				[set! lastWasBackslash 1]]]
+		[set! i [+ i 1]]]
+	// Dump the rest of the string
+	[write 1 [+ fmt lastPercentPosition] [- i lastPercentPosition]]]
+
 [defunc [main argc argv]
 	[premalloc 0]
 	[define fen [strarrayat argv 1]] // Get the fen string from cmdline
@@ -140,21 +212,13 @@
 
 	[define i 0]
 	[define current 0]
-	[printstr "   a b c d e f g h"]
-	[printchar newline]
-	[printstr " ┌─────────────────┐"]
-	[printchar newline]
-	[printint row]
-	[printstr "│"]
+	[printf "   a b c d e f g h\n ┌─────────────────┐\n%d│" row]
 	[while [!= [char fen i] 0]
 		[set! current [char fen i]]
 		[if [== current 47] // Check if it's a "/"
 			[set! row [- row 1]]
 			[set! col 0]
-			[printstr " │"]
-			[printchar newline]
-			[printint row]
-			[printstr "│"]]
+			[printf " │\n%d│" row]]
 		[if [isdigit current]
 			[define offset [- current 48]]
 			[set! col [+ col offset]]
@@ -192,9 +256,19 @@
 				[printstr "♝"]]
 			]
 		[set! i [+ i 1]]]
-	[printstr " │"]
-	[printchar newline]
-	[printstr " └─────────────────┘"]
+	[printf " │\n └─────────────────┘\nYour turn (move a piece using xxyy notation):\n> " ""]
+
+	[define input [malloc 5]]
+	[define from [malloc 2]]
+	[define to [malloc 2]]
+
+	[read 0 output 5] // Also read the enter key
+
+	[substr output from 0 2]
+	[substr output to 2 4]
+
+	[printf "From: %s\n" from]
+	[printf "To  : %s\n" to]
 
 	[asm "mov eax, 0"]
 		
