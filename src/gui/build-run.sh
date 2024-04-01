@@ -4,7 +4,7 @@ cd $SCRIPT_DIR
 
 ENTRY="$SCRIPT_DIR/Game.cpp"
 
-if  g++ -o test $ENTRY -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio; then
+if  g++ -o test $ENTRY -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio ; then
     # it actually compiled, yippee! now run the game
     ./test
 else

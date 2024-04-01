@@ -86,8 +86,8 @@ malloc:
 		;--------------------
 
 		.return:
-		pop ebp
 		pop ebx
+		pop ebp
 		ret
 
 		.error:
@@ -109,6 +109,6 @@ premalloc:
 		mov dword [ptr_wilderness], fbin + 8
 		mov dword [ptr_bss_end], fbin + 8
 		sbrk esi ; increment break by requested size
-		pop ebp
 		pop ebx
+		pop ebp
 		ret

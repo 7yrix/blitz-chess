@@ -18,7 +18,7 @@ clean:
 	rm -rf ./bin
 
 run:
-	./out/main
+	./out/main $(fen)
 
 test: 
 	./lib/bashunit tests/test.bash

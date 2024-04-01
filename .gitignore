@@ -1,6 +1,12 @@
+# Everyhting but the latest build
+bin/*
+!bin/latest
 
 # Build Artifacts
 out/
 
 # Test artifacts
 artifacts/
+
+# Use specific settings
+.vcsode/settings.json
