@@ -8,6 +8,86 @@
 	[asm "shl eax, cl"]
 	[asm "or dword [ebp+8], eax"]]
 
+[defunc [derefb ptr]
+	[asm "mov ebx, dword [ebp+8]"]
+	[asm "xor eax, eax"]
+	[asm "mov al, byte [ebx]"]]
+
+[defunc [write fd buf len]
+	[asm "mov eax, 4"]
+	[asm "mov ebx, dword [ebp+16]"] // get fd
+	[asm "mov ecx, dword [ebp+12]"] // get buf
+	[asm "mov edx, dword [ebp+8]"] // get len
+	[asm "int 0x80"]]
+
+// We're in 32 bit mode, so we need to split the shift into two instructions. (shld and shl)
+[defunc [shl64 numh numl shift_amount] // 16 12 8
+	[asm "mov ecx, dword [ebp+8]"] // Get the shift amount
+	[asm "mov eax, dword [ebp+12]"]
+	[asm "mov edx, dword [ebp+16]"]
+	[asm "shld edx, eax, cl"]
+	[asm "shl eax, cl"]]
+
+[defunc [printstr str]
+	[define len 0]
+	[while [!= [derefb [+ str len]] 0]
+		[set! len [+ len 1]]]
+	[write 1 str len]]
+
+[defunc [printchar char]
+	[define buf [malloc 1]]
+	[memset buf char 1]
+	[write 1 buf 1]
+	[free buf]]
+
+[defunc [printint num]
+	[define digit 0]
+	[define len 0]
+	[while [!= num 0]
+		[set! digit [% num 10]]
+		[set! digit [+ digit 48]]
+		[asm "push dword [ebp-4]"] // Push digit
+		[set! num [/ num 10]]
+		[set! len [+ len 1]]]
+	[asm "mov eax, 4"]
+	[asm "mov ebx, 1"]
+	[asm "mov edx, [ebp-8]"] // Get length
+	[asm "imul edx, edx, 4"]
+	[asm "mov ecx, esp"]
+	[asm "int 0x80"]]
+
+[defunc [setbyte ptr value]
+	[asm "mov eax, dword [ebp+12]"]
+	[asm "mov bl, byte [ebp+8]"]
+	[asm "mov byte [eax], bl"]]
+
+[defunc [memset ptr value num]
+	[define i 0]
+	[while [!= i num]
+		[setbyte [+ ptr i] value]
+		[set! i [+ i 1]]]]
+
+[defunc [memcpy dest src num]
+	[define i 0]
+	[while [!= i num]
+		[setbyte [+ dest i] [derefb [+ src i]]]
+		[set! i [+ i 1]]]]
+
+// Convert an unsigned integer to a string
+[defunc [uinttostr num buffer]
+	[define digit 0]
+	[define len 1]
+	// We use a buffer of size 16 to store the string
+	[define offset [+ buffer 15]]
+	// We write the string in reverse order, and then reverse it at the end
+	[while [!= num 0]
+		[set! digit [+ [% num 10] 48]]
+		[memset [- offset len] digit 1]
+		[set! num [/ num 10]]
+		[set! len [+ len 1]]]
+	[memset offset 0 1]
+	[return [- offset len]]]
+
 [defunc [getbit board index]
 	[asm "mov eax, dword [ebp+12]"]
 	[asm "mov ecx, dword [ebp+8]"]
@@ -21,10 +101,109 @@
 	[asm "not eax"]
 	[asm "and dword [ebp+8], eax"]]
 
-[defunc [main]
-	[premalloc 96]
-	[define boardpawn [malloc 8]]
-	[setbit boardpawn 8]
-	[return [getbit boardpawn 8]]]
+[defunc [char str index]
+	[return [derefb [+ str index]]]]
 
-[main]
+// Array access at index
+[defunc [strarrayat arr index]
+	[define i 0]
+	[define items 0]
+	[while [!= items index]
+		[while [!= [char arr i] 0]
+			[set! i [+ i 1]]]
+		[set! items [+ items 1]]
+		[set! i [+ i 1]]]
+	[return [+ arr i]]]
+
+[defunc [and a b]
+	[asm "mov eax, dword [ebp+8]"]
+	[asm "and eax, dword [ebp+12]"]]
+
+[defunc [or a b]
+	[asm "mov eax, dword [ebp+8]"]
+	[asm "or eax, dword [ebp+12]"]]
+
+[defunc [isdigit char]
+	[if [and [>= char 48] [<= char 57]]
+		[return 1]
+		[return 0]]]
+
+[defunc [main argc argv]
+	[premalloc 0]
+	[define fen [strarrayat argv 1]] // Get the fen string from cmdline
+	[define newline 10]
+
+	[define row 8]
+	[define col 0]
+
+	[define output [malloc 16]] // Reserve space for board
+
+	[define i 0]
+	[define current 0]
+	[printstr "   a b c d e f g h"]
+	[printchar newline]
+	[printstr " ┌─────────────────┐"]
+	[printchar newline]
+	[printint row]
+	[printstr "│"]
+	[while [!= [char fen i] 0]
+		[set! current [char fen i]]
+		[if [== current 47] // Check if it's a "/"
+			[set! row [- row 1]]
+			[set! col 0]
+			[printstr " │"]
+			[printchar newline]
+			[printint row]
+			[printstr "│"]]
+		[if [isdigit current]
+			[define offset [- current 48]]
+			[set! col [+ col offset]]
+			// TODO: Calculation doesn't work correctly, eax gets overwritten when doing [+ x [- 1 2]]
+			[define doubleOffset [* offset 2]]
+			[memset output 32 doubleOffset]
+			[setbyte [+ output doubleOffset] 0]
+			[printstr output]
+			[set! col [+ col 1]]]
+		[if [and [!= [isdigit current] 1] [!= current 47]]
+			[printstr " "]
+			[if [== current 112] // p
+				[printstr "♙"]]
+			[if [== current 107] // k
+				[printstr "♔"]]
+			[if [== current 114] // r
+				[printstr "♖"]]
+			[if [== current 110] // n
+				[printstr "♘"]]
+			[if [== current 113] // q
+				[printstr "♕"]]
+			[if [== current 98] // b
+				[printstr "♗"]]
+			[if [== current 80] // P
+				[printstr "♟︎"]]
+			[if [== current 75] // K
+				[printstr "♚"]]
+			[if [== current 82] // R
+				[printstr "♜"]]
+			[if [== current 78] // N
+				[printstr "♞"]]
+			[if [== current 81] // Q
+				[printstr "♛"]]
+			[if [== current 66] // B
+				[printstr "♝"]]
+			]
+		[set! i [+ i 1]]]
+	[printstr " │"]
+	[printchar newline]
+	[printstr " └─────────────────┘"]
+
+	[asm "mov eax, 0"]
+		
+	[return 0]]
+
+[define argc 0]
+[asm "mov eax, [ebp+4]"]
+[asm "mov [argc], eax"]
+[define argv 0]
+[asm "mov eax, [ebp+8]"]
+[asm "mov [argv], eax"]
+[main argc argv]
