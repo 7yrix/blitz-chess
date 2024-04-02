@@ -51,6 +51,50 @@ struct Piece {
   int y;
   Color color;
   bool enPassant;
+
+  wchar_t* print(){
+    switch (type){
+        case PieceType::WHITE_KING:
+            return L"♔";
+            break;
+        case PieceType::WHITE_ROOK:
+            return L"♖";
+            break;
+        case PieceType::WHITE_BISHOP:
+            return L"♗";
+            break;
+        case PieceType::WHITE_PAWN:
+            return L"♙";
+            break;
+        case PieceType::WHITE_QUEEN:
+            return L"♕";
+            break;
+        case PieceType::WHITE_KNIGHT:
+            return L"♘";
+            break;
+        case PieceType::BLACK_KING:
+            return L"♚";
+            break;
+        case PieceType::BLACK_ROOK:
+            return L"♜";
+            break;
+        case PieceType::BLACK_BISHOP:
+            return L"♝";
+            break;
+        case PieceType::BLACK_PAWN:
+            return L"♟︎";
+            break;
+        case PieceType::BLACK_QUEEN:
+            return L"♛";
+            break;
+        case PieceType::BLACK_KNIGHT:
+            return L"♞";
+            break;
+        default:
+            return L" ";
+            break;
+    }
+  };
 };
 
 class Game {
@@ -102,6 +146,8 @@ class Game {
                                     (std::to_string(i) + ".png"));
     }
 
+    emptyTexture.loadFromFile(executableDirectory / "assets" / "fucpp.png");
+
     TextureMap = {{'K', pieceTextures[6]},  {'Q', pieceTextures[7]},
                   {'R', pieceTextures[8]},  {'B', pieceTextures[9]},
                   {'N', pieceTextures[10]}, {'P', pieceTextures[11]},
@@ -141,7 +187,6 @@ class Game {
   }
 
   void interpret() {
-    emptyTexture.create(1, 1);
     int row = 0;  // Starten Sie bei der letzten Reihe (Zeile 8)
     int col = 0;  // Starten Sie in der ersten Spalte (A)
 
@@ -159,7 +204,7 @@ class Game {
           for (int i = 0; i < c - '0'; i++) {
             pieces[row][col].type = PieceType::NONE;
             pieces[row][col].color = Color::NONE;
-            pieces[row][col].piece.setTextureRect(sf::IntRect());
+            pieces[row][col].piece.setTexture(emptyTexture);
             pieces[row][col].x = col;
             pieces[row][col].y = row;
             col++;
@@ -671,7 +716,8 @@ class Game {
         pieces[get<0>(lastPosition)][get<1>(lastPosition)].color = Color::NONE;
       }
       if (piece.type == PieceType::BLACK_KING && target_x == piece.x + 2) {  // k
-        pieces[0][5] = pieces[0][7];
+        pieces[0][5].color = Color::BLACK;
+        pieces[0][5].type = PieceType::BLACK_ROOK;
         pieces[0][7].color = Color::NONE;
         pieces[0][7].type = PieceType::NONE;
       }
@@ -679,7 +725,8 @@ class Game {
         castlek = false;
       }
       if (piece.type == PieceType::BLACK_KING && target_x == piece.x - 2) {  // q
-        pieces[0][3] = pieces[0][0];
+        pieces[0][3].color = Color::BLACK;
+        pieces[0][3].type = PieceType::BLACK_ROOK;
         pieces[0][0].color = Color::NONE;
         pieces[0][0].type = PieceType::NONE;
       }
@@ -687,7 +734,9 @@ class Game {
         castlek = false;
       }
       if (piece.type == PieceType::WHITE_KING && target_x == piece.x + 2) {  // K
-        pieces[7][5] = pieces[7][7];
+        // King will move below
+        pieces[7][5].color = Color::WHITE;
+        pieces[7][5].type = PieceType::WHITE_ROOK;
         pieces[7][7].color = Color::NONE;
         pieces[7][7].type = PieceType::NONE;
       }
@@ -695,7 +744,8 @@ class Game {
         castleK = false;
       }
       if (piece.type == PieceType::WHITE_KING && target_x == piece.x - 2) {  // Q
-        pieces[7][3] = pieces[7][0];
+        pieces[7][3].color = Color::WHITE;
+        pieces[7][3].type = PieceType::WHITE_ROOK;
         pieces[7][0].color = Color::NONE;
         pieces[7][0].type = PieceType::NONE;
       }
@@ -714,6 +764,9 @@ class Game {
         whiteKingX = target_x;
         whiteKingY = target_y;
       }
+
+      /* ---------------------------- Move Piece ---------------------------- */
+
       pieces[target_y][target_x].color = piece.color;
       pieces[target_y][target_x].type = piece.type;
       pieces[piece.y][piece.x].color = Color::NONE;
@@ -731,10 +784,14 @@ class Game {
       pieces[get<0>(lastPosition)][get<1>(lastPosition)].enPassant = false;
       lastPosition = std::make_tuple(target_y, target_x);
       position = reinterpret();
+
+      /* ---------------------------- Print Board --------------------------- */
+
+      std::cout << position << endl;
       toMove == Color::BLACK ? toMove = Color::WHITE : toMove = Color::BLACK;
       for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
-          std::cout << static_cast<int>(pieces[i][j].type) << " ";
+          printf("%ls ", pieces[i][j].print());
         }
         cout << endl;
       }
@@ -802,8 +859,19 @@ class Game {
     Piece* movingPiece = nullptr;
     sf::RectangleShape* lastHighlightedField = nullptr;
     sf::Color lastHighlightedFieldColor;
+    sf::Clock clock;
+
+    int lastFrameTime = 0;
+    int targetFrameTime = 1000 / 144;
 
     while (window.isOpen()) {
+      if (clock.getElapsedTime().asMilliseconds() - lastFrameTime <
+          targetFrameTime) {
+        continue;
+      }
+
+      clock.restart();
+
       window.clear();
       while (window.pollEvent(event)) {
         if (event.type == sf::Event::Resized) {
@@ -825,22 +893,20 @@ class Game {
                               ? window.getSize().x / 8
                               : window.getSize().y / 8;
 
-          for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
-              if (pieces[i][j].type != PieceType::NONE &&
-                  pieces[i][j].piece.getGlobalBounds().contains(
-                      mousePosition.x, mousePosition.y)) {
-                isMoving = true;
-                movingPiece = &pieces[i][j];
+          sf::Vector2i target = getCoordinateIndex(mousePosition.x, mousePosition.y);
 
-                std::vector<std::tuple<int, int>> moves =
-                    generatePossibleMoves(*movingPiece);
+          if (target.x >= 0 && target.x < 8 && target.y >= 0 && target.y < 8) {
+            if (pieces[target.y][target.x].type != PieceType::NONE) {
+              isMoving = true;
+              movingPiece = &pieces[target.y][target.x];
 
-                for (const auto& move : moves) {
-                  // Highlight the move field
-                  sf::RectangleShape& field = board[get<0>(move)][get<1>(move)];
-                  field.setFillColor(sf::Color(186, 202, 68));
-                }
+              std::vector<std::tuple<int, int>> moves =
+                  generatePossibleMoves(*movingPiece);
+
+              for (const auto& move : moves) {
+                // Highlight the move field
+                sf::RectangleShape& field = board[get<0>(move)][get<1>(move)];
+                field.setFillColor(sf::Color(186, 202, 68));
               }
             }
           }
@@ -870,31 +936,27 @@ class Game {
 				// Listen for mouse drop event
         if (event.type == sf::Event::MouseButtonReleased) {
           isMoving = false;
+
           sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
 
-          // Get the target field given the current mouse position
-          int targetRow = (mousePosition.y -
-                           (window.getSize().y - window.getSize().x) / 2) /
-                          (window.getSize().x / 8);
-          int targetCol = (mousePosition.x -
-                           (window.getSize().x - window.getSize().y) / 2) /
-                          (window.getSize().y / 8);
+          sf::Vector2i target = getCoordinateIndex(mousePosition.x, mousePosition.y);
 
           isAllowed = false;
-          isAllowed = allowedMove(*movingPiece, targetCol, targetRow,
+          isAllowed = allowedMove(*movingPiece, target.x, target.y,
                                   generatePossibleMoves(*movingPiece));
 
           // Check if the target field is valid
-          if (isAllowed) {
-            // Move the piece to the target field
-            pieces[targetRow][targetCol].color = movingPiece->color;
-						pieces[targetRow][targetCol].type = movingPiece->type;
-						pieces[targetRow][targetCol].enPassant = movingPiece->enPassant;
+          // TODO: Maybe important for en passant!
+          //if (isAllowed) {
+          //   // Move the piece to the target field
+          //   pieces[targetRow][targetCol].color = movingPiece->color;
+					// 	pieces[targetRow][targetCol].type = movingPiece->type;
+					//pieces[target.y][target.x].enPassant = movingPiece->enPassant;
 
-            movingPiece->type = PieceType::NONE;
-            movingPiece->color = Color::NONE;
-						movingPiece->enPassant = false;
-          }
+          //   movingPiece->type = PieceType::NONE;
+          //   movingPiece->color = Color::NONE;
+					//movingPiece->enPassant = false;
+          //}
 					movingPiece = nullptr;
           initializeBoard();
           interpret();
@@ -909,6 +971,7 @@ class Game {
 };
 
 int main() {
+  setlocale(LC_ALL, "");
   Game main;
   main.run();
   return 0;
