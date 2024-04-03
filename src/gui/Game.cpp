@@ -112,7 +112,6 @@ class Game {
                           .enPassant = false}}};  // Array für die Schachfiguren
   // Create a transparent texture for empty fields
   sf::Texture emptyTexture;
-  bool isAllowed;
   bool castleK = true;
   bool castleQ = true;
   bool castlek = true;
@@ -857,9 +856,11 @@ class Game {
     sf::Event event;
     bool isMoving = false;
     Piece* movingPiece = nullptr;
-    sf::RectangleShape* lastHighlightedField = nullptr;
-    sf::Color lastHighlightedFieldColor;
     sf::Clock clock;
+
+		std::vector<std::tuple<int, int>> possibleMoves;
+
+
 
     int lastFrameTime = 0;
     int targetFrameTime = 1000 / 144;
@@ -886,84 +887,43 @@ class Game {
         }
 
         // Listen for mouse drag
-        if (event.type == sf::Event::MouseButtonPressed && !isMoving) {
+        if (event.type == sf::Event::MouseButtonPressed) {
           sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
-          // Get piece size
-          int fieldSize = window.getSize().x < window.getSize().y
-                              ? window.getSize().x / 8
-                              : window.getSize().y / 8;
-
           sf::Vector2i target = getCoordinateIndex(mousePosition.x, mousePosition.y);
 
-          if (target.x >= 0 && target.x < 8 && target.y >= 0 && target.y < 8) {
-            if (pieces[target.y][target.x].type != PieceType::NONE) {
-              isMoving = true;
-              movingPiece = &pieces[target.y][target.x];
+					if (target.x >= 0 && target.x < 8 && target.y >= 0 && target.y < 8) {
+						if (pieces[target.y][target.x].color == toMove) {
+							// User wants to move one of his pieces
+							isMoving = true;
+							movingPiece = &pieces[target.y][target.x];
 
-              std::vector<std::tuple<int, int>> moves =
-                  generatePossibleMoves(*movingPiece);
+							possibleMoves =
+									generatePossibleMoves(*movingPiece);
+							initializeBoard();
+						} else {
+							bool moveAllowed = allowedMove(*movingPiece, target.x, target.y, possibleMoves);
 
-              for (const auto& move : moves) {
-                // Highlight the move field
-                sf::RectangleShape& field = board[get<0>(move)][get<1>(move)];
-                field.setFillColor(sf::Color(186, 202, 68));
-              }
-            }
-          }
-        }
-
-        if (isMoving) {
-          // sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
-          // movingPiece->piece.setPosition(mousePosition.x -
-          // movingPiece->piece.getGlobalBounds().width / 2, mousePosition.y -
-          // movingPiece->piece.getGlobalBounds().height / 2);
-
-          // sf::Vector2i vector = getCoordinateIndex(mousePosition.x,
-          // mousePosition.y);
-
-          // sf::RectangleShape* highlightedField = &board[vector.y][vector.x];
-
-          // highlightedField->setFillColor(sf::Color(211, 221, 135));
-
-          // if (lastHighlightedField != nullptr) {
-          //     lastHighlightedField->setFillColor(lastHighlightedFieldColor);
-          // }
-
-          // lastHighlightedField = highlightedField;
-          // lastHighlightedFieldColor = highlightedField->getFillColor();
-        }
-
-				// Listen for mouse drop event
-        if (event.type == sf::Event::MouseButtonReleased) {
-          isMoving = false;
-
-          sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
-
-          sf::Vector2i target = getCoordinateIndex(mousePosition.x, mousePosition.y);
-
-          isAllowed = false;
-          isAllowed = allowedMove(*movingPiece, target.x, target.y,
-                                  generatePossibleMoves(*movingPiece));
-
-          // Check if the target field is valid
-          // TODO: Maybe important for en passant!
-          //if (isAllowed) {
-          //   // Move the piece to the target field
-          //   pieces[targetRow][targetCol].color = movingPiece->color;
-					// 	pieces[targetRow][targetCol].type = movingPiece->type;
-					//pieces[target.y][target.x].enPassant = movingPiece->enPassant;
-
-          //   movingPiece->type = PieceType::NONE;
-          //   movingPiece->color = Color::NONE;
-					//movingPiece->enPassant = false;
-          //}
-					movingPiece = nullptr;
-          initializeBoard();
-          interpret();
+							if (moveAllowed) {
+								isMoving = false;
+								possibleMoves.clear();
+								movingPiece = nullptr;
+								initializeBoard();
+								interpret();
+							}
+						}
+					}
         }
       }
-      drawBoard();
-      drawPieces();
+			
+			if (isMoving) {
+				for (const auto& move : possibleMoves) {
+					// Highlight the move field
+					sf::RectangleShape& field = board[get<0>(move)][get<1>(move)];
+					field.setFillColor(sf::Color(186, 202, 68));
+				}
+			}
+			drawBoard();
+			drawPieces();
 			drawFieldLegend();
       window.display();
     }

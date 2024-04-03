@@ -3,10 +3,10 @@
 // The least significant bit represents a1, and the most significant bit represents h8.
 
 [defunc [setbit board index]
-	[asm "mov eax, dword [ebp+8]"]
-	[asm "mov ecx, dword [ebp+12]"]
+	[asm "mov eax, dword [ebp+12]"]
+	[asm "mov ecx, dword [ebp+8]"]
 	[asm "shl eax, cl"]
-	[asm "or dword [ebp+12], eax"]]
+	[asm "or dword [ebp+8], eax"]]
 
 [defunc [derefb ptr]
 	[asm "mov ebx, dword [ebp+8]"]
@@ -15,23 +15,23 @@
 
 [defunc [write fd buf len]
 	[asm "mov eax, 4"]
-	[asm "mov ebx, dword [ebp+8]"] // get fd
+	[asm "mov ebx, dword [ebp+16]"] // get fd
 	[asm "mov ecx, dword [ebp+12]"] // get buf
-	[asm "mov edx, dword [ebp+16]"] // get len
+	[asm "mov edx, dword [ebp+8]"] // get len
 	[asm "int 0x80"]]
 
 [defunc [read fd buf len]
 	[asm "mov eax, 3"]
-	[asm "mov ebx, dword [ebp+8]"] // get fd
+	[asm "mov ebx, dword [ebp+16]"] // get fd
 	[asm "mov ecx, dword [ebp+12]"] // get buf
-	[asm "mov edx, dword [ebp+16]"] // get len
+	[asm "mov edx, dword [ebp+8]"] // get len
 	[asm "int 0x80"]]
 
 // We're in 32 bit mode, so we need to split the shift into two instructions. (shld and shl)
 [defunc [shl64 numh numl shift_amount] // 16 12 8
-	[asm "mov ecx, dword [ebp+16]"] // Get the shift amount
+	[asm "mov ecx, dword [ebp+8]"] // Get the shift amount
 	[asm "mov eax, dword [ebp+12]"]
-	[asm "mov edx, dword [ebp+8]"]
+	[asm "mov edx, dword [ebp+16]"]
 	[asm "shld edx, eax, cl"]
 	[asm "shl eax, cl"]]
 
@@ -64,8 +64,8 @@
 	[asm "int 0x80"]]
 
 [defunc [setbyte ptr value]
-	[asm "mov eax, dword [ebp+8]"]
-	[asm "mov bl, byte [ebp+12]"]
+	[asm "mov eax, dword [ebp+12]"]
+	[asm "mov bl, byte [ebp+8]"]
 	[asm "mov byte [eax], bl"]]
 
 [defunc [memset ptr value num]
@@ -96,17 +96,17 @@
 	[return [- offset len]]]
 
 [defunc [getbit board index]
-	[asm "mov eax, dword [ebp+8]"]
-	[asm "mov ecx, dword [ebp+12]"]
+	[asm "mov eax, dword [ebp+12]"]
+	[asm "mov ecx, dword [ebp+8]"]
 	[asm "shr eax, cl"]
 	[asm "and eax, 1"]]
 
 [defunc [clearbit board index]
-	[asm "mov eax, dword [ebp+8]"]
-	[asm "mov ecx, dword [ebp+12]"]
+	[asm "mov eax, dword [ebp+12]"]
+	[asm "mov ecx, dword [ebp+8]"]
 	[asm "shl eax, cl"]
 	[asm "not eax"]
-	[asm "and dword [ebp+12], eax"]]
+	[asm "and dword [ebp+8], eax"]]
 
 [defunc [char str index]
 	[return [derefb [+ str index]]]]
@@ -123,12 +123,12 @@
 	[return [+ arr i]]]
 
 [defunc [and a b]
-	[asm "mov eax, dword [ebp+12]"]
-	[asm "and eax, dword [ebp+8]"]]
+	[asm "mov eax, dword [ebp+8]"]
+	[asm "and eax, dword [ebp+12]"]]
 
 [defunc [or a b]
-	[asm "mov eax, dword [ebp+12]"]
-	[asm "or eax, dword [ebp+8]"]]
+	[asm "mov eax, dword [ebp+8]"]
+	[asm "or eax, dword [ebp+12]"]]
 
 [defunc [isdigit char]
 	[if [and [>= char 48] [<= char 57]]
