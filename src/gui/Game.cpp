@@ -999,11 +999,11 @@ class Game {
     std::uniform_int_distribution<> dis(0, tmp.size() - 1);
     int randomIndex = dis(gen);
     std::tuple<int, int, int, int> randomMove = tmp[randomIndex];
-    bool fun = allowedMove(pieces[std::get<2>(randomMove)][std::get<3>(randomMove)], std::get<0>(randomMove), std::get<1>(randomMove), tmpMove);
+    bool fun = allowedMove(pieces[std::get<2>(randomMove)][std::get<3>(randomMove)], std::get<1>(randomMove), std::get<0>(randomMove), tmpMove);
     while(!fun){
       int randomIndex = dis(gen);
       std::tuple<int, int, int, int> randomMove = tmp[randomIndex];
-      fun = allowedMove(pieces[std::get<2>(randomMove)][std::get<3>(randomMove)], std::get<0>(randomMove), std::get<1>(randomMove), tmpMove);
+      fun = allowedMove(pieces[std::get<2>(randomMove)][std::get<3>(randomMove)], std::get<1>(randomMove), std::get<0>(randomMove), tmpMove);
     }
   }
 };
