@@ -10,19 +10,19 @@
 using namespace std;
 
 enum class PieceType {
-  WHITE_KING,
-  WHITE_QUEEN,
-  WHITE_ROOK,
-  WHITE_BISHOP,
-  WHITE_KNIGHT,
-  WHITE_PAWN,
-  BLACK_KING,
-  BLACK_QUEEN,
-  BLACK_ROOK,
-  BLACK_BISHOP,
-  BLACK_KNIGHT,
-  BLACK_PAWN,
-  NONE
+  WHITE_KING,//0
+  WHITE_QUEEN,//1
+  WHITE_ROOK,//2
+  WHITE_BISHOP,//3
+  WHITE_KNIGHT,//4
+  WHITE_PAWN,//5
+  BLACK_KING,//6
+  BLACK_QUEEN,//7
+  BLACK_ROOK,//8
+  BLACK_BISHOP,//9
+  BLACK_KNIGHT,//10
+  BLACK_PAWN,//11
+  NONE//12
 };
 
 enum class Color { NONE, WHITE, BLACK };
@@ -141,6 +141,14 @@ class Game {
     std::cout << std::endl;
   }
 
+  void printMovesFull(const std::vector<std::tuple<int, int, int, int>>& moves) {
+    for (const auto& move : moves) {
+      std::cout << "From: (" << std::get<2>(move) << ", " << std::get<3>(move)
+                << "), to: (" << std::get<0>(move) << ", " << std::get<1>(move) << ") ";
+    }
+    std::cout << std::endl;
+  }
+
   void loadTextures() {
 		std::filesystem::path executableDirectory = getAbsoluteExecutableDirectory();
     for (int i = 0; i < 12; i++) {
@@ -194,9 +202,10 @@ class Game {
 
     for (char c : position) {
       if (c == ' ') {
-        // Informationen über die Möglichkeit der Rochade etc. erreicht
+        return;
         break;
-      } else if (c == '/') {
+      }
+      if (c == '/') {
         // Neue Zeile erreicht, gehen Sie zur nächsten Zeile und setzen Sie die
         // Spalte auf 0 zurück
         row++;
@@ -824,7 +833,7 @@ class Game {
 
       /* ---------------------------- Print Board --------------------------- */
 
-      std::cout << position << endl;
+      //std::cout << position << endl;
       toMove == Color::BLACK ? toMove = Color::WHITE : toMove = Color::BLACK;
       for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
@@ -909,6 +918,7 @@ class Game {
 
   void run() {
     interpret();
+    std::cout << deepEngine(position, Color::WHITE, 2);
     sf::Event event;
     bool isMoving = false;
     Piece* movingPiece = nullptr;
@@ -1005,6 +1015,44 @@ class Game {
       std::tuple<int, int, int, int> randomMove = tmp[randomIndex];
       fun = allowedMove(pieces[std::get<2>(randomMove)][std::get<3>(randomMove)], std::get<1>(randomMove), std::get<0>(randomMove), tmpMove);
     }
+  }
+
+  int moveListTest(Color color){
+    return movesList(color).size();
+  }
+
+  int deepEngine(std::string startPosition, Color color, int depth){
+    if(depth == 0){
+      return 1;
+    }
+    toMove = color;
+    int count = 0;
+    Color tmp; 
+    interpret();
+    if (color == Color::BLACK){
+      tmp=Color::WHITE;
+    }
+    else{
+      tmp=Color::BLACK;
+    }
+    std::vector<std::tuple<int, int, int, int>> tmpList = movesListEngine(color);
+    std::vector<std::tuple<int, int>> tmpMove = movesList(color);
+    for (const auto& tuple : tmpList){
+      if (allowedMove(pieces[std::get<2>(tuple)][std::get<3>(tuple)], std::get<1>(tuple), std::get<0>(tuple), tmpMove)){
+        count += deepEngine(position, tmp, depth-1);
+      }
+      else{
+        std::cout << "Move failed, targeted: " << std::get<0>(tuple) << ", " << std::get<1>(tuple) << std::endl;
+        std::cout << "Targeted from: " << std::get<2>(tuple) << ", " << std::get<3>(tuple) << std::endl;
+        std::cout << "Piece is: " << static_cast<int>(pieces[std::get<2>(tuple)][std::get<3>(tuple)].type) << std::endl;
+        printMoves(tmpMove);
+        printMovesFull(tmpList);
+        exit(0);
+      }
+      position = startPosition;
+      interpret();
+    }
+    return count;
   }
 };
 
