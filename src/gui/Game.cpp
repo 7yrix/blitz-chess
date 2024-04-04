@@ -1,113 +1,26 @@
-#include <SFML/Graphics.hpp>
 #include <filesystem>
 #include <iostream>
+#include <random>
 #include <string>
 #include <vector>
-#include <random>
 
+#include "MoveGeneration.h"
+#include "types.h"
 #include "utils/filesystem.cpp"
 
 using namespace std;
 
-enum class PieceType {
-  WHITE_KING,
-  WHITE_QUEEN,
-  WHITE_ROOK,
-  WHITE_BISHOP,
-  WHITE_KNIGHT,
-  WHITE_PAWN,
-  BLACK_KING,
-  BLACK_QUEEN,
-  BLACK_ROOK,
-  BLACK_BISHOP,
-  BLACK_KNIGHT,
-  BLACK_PAWN,
-  NONE
-};
-
-enum class Color { NONE, WHITE, BLACK };
-
-std::map<char, PieceType> PieceMap = {
-    {'K', PieceType::WHITE_KING},   {'Q', PieceType::WHITE_QUEEN},
-    {'R', PieceType::WHITE_ROOK},   {'B', PieceType::WHITE_BISHOP},
-    {'N', PieceType::WHITE_KNIGHT}, {'P', PieceType::WHITE_PAWN},
-    {'k', PieceType::BLACK_KING},   {'q', PieceType::BLACK_QUEEN},
-    {'r', PieceType::BLACK_ROOK},   {'b', PieceType::BLACK_BISHOP},
-    {'n', PieceType::BLACK_KNIGHT}, {'p', PieceType::BLACK_PAWN},
-    {' ', PieceType::NONE}};
-
-std::map<PieceType, char> ReversePieceMap = {
-		{PieceType::WHITE_KING, 'K'},   {PieceType::WHITE_QUEEN, 'Q'},
-		{PieceType::WHITE_ROOK, 'R'},   {PieceType::WHITE_BISHOP, 'B'},
-		{PieceType::WHITE_KNIGHT, 'N'}, {PieceType::WHITE_PAWN, 'P'},
-		{PieceType::BLACK_KING, 'k'},   {PieceType::BLACK_QUEEN, 'q'},
-		{PieceType::BLACK_ROOK, 'r'},   {PieceType::BLACK_BISHOP, 'b'},
-		{PieceType::BLACK_KNIGHT, 'n'}, {PieceType::BLACK_PAWN, 'p'},
-		{PieceType::NONE, ' '}};
-
-struct Piece {
-  sf::Sprite piece;
-  PieceType type;
-  int x;
-  int y;
-  Color color;
-  bool enPassant;
-
-  wchar_t* print(){
-    switch (type){
-        case PieceType::WHITE_KING:
-            return L"♔";
-            break;
-        case PieceType::WHITE_ROOK:
-            return L"♖";
-            break;
-        case PieceType::WHITE_BISHOP:
-            return L"♗";
-            break;
-        case PieceType::WHITE_PAWN:
-            return L"♙";
-            break;
-        case PieceType::WHITE_QUEEN:
-            return L"♕";
-            break;
-        case PieceType::WHITE_KNIGHT:
-            return L"♘";
-            break;
-        case PieceType::BLACK_KING:
-            return L"♚";
-            break;
-        case PieceType::BLACK_ROOK:
-            return L"♜";
-            break;
-        case PieceType::BLACK_BISHOP:
-            return L"♝";
-            break;
-        case PieceType::BLACK_PAWN:
-            return L"♟︎";
-            break;
-        case PieceType::BLACK_QUEEN:
-            return L"♛";
-            break;
-        case PieceType::BLACK_KNIGHT:
-            return L"♞";
-            break;
-        default:
-            return L" ";
-            break;
-    }
-  };
-};
-
-//GAME
+// GAME
 
 class Game {
  public:
   sf::RenderWindow window;
   std::string position;            // Position in FEN
   sf::RectangleShape board[8][8];  // Array für die Schachbrettfelder
-  sf::Texture pieceTextures[12];   // Array für die Texturen der Figuren
-  std::map<char, sf::Texture> TextureMap;
-	sf::Font font;
+  sf::Sprite sprites[12];          // Array für die Texturen der Figuren
+  sf::Texture texture;
+  std::map<char, sf::Sprite> TextureMap;
+  sf::Font font;
   // Initialize the pieces array with -1
   Piece pieces[8][8] = {{{.piece = sf::Sprite(),
                           .type = PieceType::NONE,
@@ -142,23 +55,29 @@ class Game {
   }
 
   void loadTextures() {
-		std::filesystem::path executableDirectory = getAbsoluteExecutableDirectory();
-    for (int i = 0; i < 12; i++) {
-      pieceTextures[i].loadFromFile(executableDirectory / "assets" /
-                                    (std::to_string(i) + ".png"));
+    std::filesystem::path executableDirectory =
+        getAbsoluteExecutableDirectory();
+
+    texture.loadFromFile(executableDirectory / "../../assets" / "pieces.png");
+
+    // Load all sprites from single texture file
+    for (int i; i < 12; i++) {
+      sprites[i].setTexture(texture);
+      sprites[i].setTextureRect(
+          sf::IntRect(i * PIECE_WIDTH, 0, PIECE_WIDTH, PIECE_HEIGHT));
     }
 
-    emptyTexture.loadFromFile(executableDirectory / "assets" / "fucpp.png");
+    sf::Sprite empty = sf::Sprite();
+    emptyTexture.loadFromFile(executableDirectory / "../../assets" / "empty.png");
+    empty.setTexture(emptyTexture);
 
-    TextureMap = {{'K', pieceTextures[6]},  {'Q', pieceTextures[7]},
-                  {'R', pieceTextures[8]},  {'B', pieceTextures[9]},
-                  {'N', pieceTextures[10]}, {'P', pieceTextures[11]},
-                  {'k', pieceTextures[0]},  {'q', pieceTextures[1]},
-                  {'r', pieceTextures[2]},  {'b', pieceTextures[3]},
-                  {'n', pieceTextures[4]},  {'p', pieceTextures[5]},
-                  {' ', emptyTexture}};
+    TextureMap = {{'K', sprites[0]}, {'Q', sprites[1]}, {'B', sprites[2]},
+                  {'N', sprites[3]}, {'R', sprites[4]}, {'P', sprites[5]},
+                  {'k', sprites[6]}, {'q', sprites[7]}, {'r', sprites[10]},
+                  {'b', sprites[8]}, {'n', sprites[9]}, {'p', sprites[11]},
+                  {' ', empty}};
 
-		font.loadFromFile((executableDirectory / "assets" / "font.otf"));
+    font.loadFromFile((executableDirectory / "../../assets" / "font.otf"));
   }
 
   void initializeBoard() {
@@ -214,9 +133,7 @@ class Game {
 
           continue;
         } else {
-          // Handle white pieces
-          pieces[row][col].piece.setTexture(
-              TextureMap[c]);  // z. B. Textur für schwarzen König
+          pieces[row][col].piece = TextureMap[c];
           pieces[row][col].type = PieceMap[c];
           pieces[row][col].x = col;
           pieces[row][col].y = row;
@@ -234,10 +151,15 @@ class Game {
           int boardY = (window.getSize().y - fieldSize * 8) / 2;
           int boardX = (window.getSize().x - fieldSize * 8) / 2;
 
-          float scale = (float)fieldSize / pieceTextures[0].getSize().x;
+          float scaleX = (float)fieldSize / PIECE_WIDTH;
+          float scaleY = (float)fieldSize / PIECE_HEIGHT;
 
-          pieces[row][col].piece.setScale(
-              scale, scale);  // Skalieren Sie die Größe der Sprites
+          // Check the sprite was loaded correctly
+          if (pieces[row][col].piece.getTexture() == nullptr) {
+            std::cout << "Error loading texture for piece " << c << std::endl;
+          }
+
+          pieces[row][col].piece.setScale(scaleX, scaleY);
           pieces[row][col].piece.setPosition(boardX + col * fieldSize,
                                              boardY + row * fieldSize);
           col++;
@@ -246,45 +168,45 @@ class Game {
     }
   }
 
-	// Draws the field numbers and letters
-	void drawFieldLegend() {
-		int fieldSize = window.getSize().x < window.getSize().y
-			? window.getSize().x / 8
-			: window.getSize().y / 8;
+  // Draws the field numbers and letters
+  void drawFieldLegend() {
+    int fieldSize = window.getSize().x < window.getSize().y
+                        ? window.getSize().x / 8
+                        : window.getSize().y / 8;
 
-		int boardY = (window.getSize().y - fieldSize * 8) / 2;
-		int boardX = (window.getSize().x - fieldSize * 8) / 2;
+    int boardY = (window.getSize().y - fieldSize * 8) / 2;
+    int boardX = (window.getSize().x - fieldSize * 8) / 2;
 
-		sf::Text text;
-		text.setFont(font);
-		text.setCharacterSize(24);
-		text.setFillColor(sf::Color::Black);
+    sf::Text text;
+    text.setFont(font);
+    text.setCharacterSize(24);
+    text.setFillColor(sf::Color::Black);
 
-		for (int i = 0; i < 8; i++) {
-			text.setString(std::to_string(8 - i));
-			text.setPosition(boardX + 5, boardY + i * fieldSize + 5);
-			window.draw(text);
-		}
+    for (int i = 0; i < 8; i++) {
+      text.setString(std::to_string(8 - i));
+      text.setPosition(boardX + 5, boardY + i * fieldSize + 5);
+      window.draw(text);
+    }
 
-		for (int i = 0; i < 8; i++) {
-			text.setString(std::string(1, 'A' + i));
-			text.setPosition(boardX + i * fieldSize + 5, boardY + 8 * fieldSize - 30);
-			window.draw(text);
-		}
-	}
+    for (int i = 0; i < 8; i++) {
+      text.setString(std::string(1, 'A' + i));
+      text.setPosition(boardX + i * fieldSize + 5, boardY + 8 * fieldSize - 30);
+      window.draw(text);
+    }
+  }
 
-	// Returns the absolute position of a board field
-	// given the x and y coordinates of the field
-	sf::Vector2u getAbsoluteBoardPosition(int x, int y) {
-		int fieldSize = window.getSize().x < window.getSize().y
-			? window.getSize().x / 8
-			: window.getSize().y / 8;
+  // Returns the absolute position of a board field
+  // given the x and y coordinates of the field
+  sf::Vector2u getAbsoluteBoardPosition(int x, int y) {
+    int fieldSize = window.getSize().x < window.getSize().y
+                        ? window.getSize().x / 8
+                        : window.getSize().y / 8;
 
-		int boardY = (window.getSize().y - fieldSize * 8) / 2;
-		int boardX = (window.getSize().x - fieldSize * 8) / 2;
+    int boardY = (window.getSize().y - fieldSize * 8) / 2;
+    int boardX = (window.getSize().x - fieldSize * 8) / 2;
 
-		return sf::Vector2u(boardX + x * fieldSize, boardY + y * fieldSize);
-	}
+    return sf::Vector2u(boardX + x * fieldSize, boardY + y * fieldSize);
+  }
 
   std::string reinterpret() {
     std::string additionalProperties =
@@ -293,27 +215,27 @@ class Game {
     std::string tmp = "";
     for (int i = 0; i < 8; i++) {
       for (int j = 0; j < 8; j++) {
-				if (pieces[i][j].type != PieceType::NONE) {
-					char pieceChar = ReversePieceMap[pieces[i][j].type];
+        if (pieces[i][j].type != PieceType::NONE) {
+          char pieceChar = ReversePieceMap[pieces[i][j].type];
 
-					if (count != 1) {
-						tmp += std::to_string(count - 1);
-					}
+          if (count != 1) {
+            tmp += std::to_string(count - 1);
+          }
 
-					tmp += pieceChar;
+          tmp += pieceChar;
 
-					count = 0;
-				}
+          count = 0;
+        }
 
-				count++;
+        count++;
         if (j == 7) {
-					if (count != 1) {
-						tmp += std::to_string(count - 1);
-					}
+          if (count != 1) {
+            tmp += std::to_string(count - 1);
+          }
 
-					if (i != 7) {
-						tmp += "/";
-					}
+          if (i != 7) {
+            tmp += "/";
+          }
           count = 1;
         }
       }
@@ -330,367 +252,33 @@ class Game {
            }) != moves.end();
   }
 
-  /*----------------------------- Fast Check for Check on Castle Rules -------------*/
-  bool castleCheck(char castleSide, Color color){
+  /*----------------------------- Fast Check for Check on Castle Rules
+   * -------------*/
+  bool castleCheck(char castleSide, Color color) {
     std::vector<std::tuple<int, int>> tmp = movesList(color);
-    switch(castleSide){
-      case 'k': return (!isMoveInList(tmp, blackKingY, blackKingX) && !isMoveInList(tmp,blackKingY,blackKingX+1));
-      case 'q': return (!isMoveInList(tmp, blackKingY, blackKingX) && !isMoveInList(tmp,blackKingY,blackKingX-1));
-      case 'K': return (!isMoveInList(tmp, whiteKingY, whiteKingX) && !isMoveInList(tmp,whiteKingY,whiteKingX-1));
-      case 'Q': return (!isMoveInList(tmp, whiteKingY, whiteKingX) && !isMoveInList(tmp,whiteKingY,whiteKingX+1));
-      default: return false;
+    switch (castleSide) {
+      case 'k':
+        return (!isMoveInList(tmp, blackKingY, blackKingX) &&
+                !isMoveInList(tmp, blackKingY, blackKingX + 1));
+      case 'q':
+        return (!isMoveInList(tmp, blackKingY, blackKingX) &&
+                !isMoveInList(tmp, blackKingY, blackKingX - 1));
+      case 'K':
+        return (!isMoveInList(tmp, whiteKingY, whiteKingX) &&
+                !isMoveInList(tmp, whiteKingY, whiteKingX - 1));
+      case 'Q':
+        return (!isMoveInList(tmp, whiteKingY, whiteKingX) &&
+                !isMoveInList(tmp, whiteKingY, whiteKingX + 1));
+      default:
+        return false;
     }
   }
 
-	/* ---------------------------- Move Generation ---------------------------- */
+  /* ---------------------------- Move Generation ----------------------------
+   */
 
-  std::vector<std::tuple<int, int>> generatePossibleMoves(Piece& piece) {
-    std::vector<std::tuple<int, int>> moves;
-
-    Color oppositeColor =
-        piece.color == Color::WHITE ? Color::BLACK : Color::WHITE;
-
-    switch (piece.type) {
-      case PieceType::WHITE_KING:
-      case PieceType::BLACK_KING:
-        if (pieces[piece.y - 1][piece.x].color != piece.color &&
-            piece.y - 1 >= 0) {
-          moves.push_back(std::make_tuple(piece.y - 1, piece.x));
-        }
-        if (pieces[piece.y - 1][piece.x - 1].color != piece.color &&
-            piece.y - 1 >= 0 && piece.x - 1 >= 0) {
-          moves.push_back(std::make_tuple(piece.y - 1, piece.x - 1));
-        }
-        if (pieces[piece.y - 1][piece.x + 1].color != piece.color &&
-            piece.y - 1 >= 0 && piece.x + 1 < 8) {
-          moves.push_back(std::make_tuple(piece.y - 1, piece.x + 1));
-        }
-        if (pieces[piece.y][piece.x - 1].color != piece.color &&
-            piece.x - 1 >= 0) {
-          moves.push_back(std::make_tuple(piece.y, piece.x - 1));
-        }
-        if (pieces[piece.y][piece.x + 1].color != piece.color &&
-            piece.x + 1 < 8) {
-          moves.push_back(std::make_tuple(piece.y, piece.x + 1));
-        }
-        if (pieces[piece.y + 1][piece.x].color != piece.color &&
-            piece.y + 1 < 8) {
-          moves.push_back(std::make_tuple(piece.y + 1, piece.x));
-        }
-        if (pieces[piece.y + 1][piece.x + 1].color != piece.color &&
-            piece.y + 1 < 8 && piece.x + 1 < 8) {
-          moves.push_back(std::make_tuple(piece.y + 1, piece.x + 1));
-        }
-        if (pieces[piece.y + 1][piece.x - 1].color != piece.color &&
-            piece.y + 1 < 8 && piece.x - 1 >= 0) {
-          moves.push_back(std::make_tuple(piece.y + 1, piece.x - 1));
-        }
-        if (piece.type == PieceType::BLACK_KING && castlek &&
-            pieces[piece.y][piece.x + 1].type == PieceType::NONE &&
-            pieces[piece.y][piece.x + 2].type == PieceType::NONE) {
-          moves.push_back(std::make_tuple(piece.y, piece.x + 2));
-        }
-        if (piece.type == PieceType::BLACK_KING && castleq &&
-            pieces[piece.y][piece.x - 1].type == PieceType::NONE &&
-            pieces[piece.y][piece.x - 2].type == PieceType::NONE &&
-            pieces[piece.y][piece.x - 3].type == PieceType::NONE) {
-          moves.push_back(std::make_tuple(piece.y, piece.x - 2));
-        }
-        if (piece.type == PieceType::WHITE_KING && castleK &&
-            pieces[piece.y][piece.x + 1].type == PieceType::NONE &&
-            pieces[piece.y][piece.x + 2].type == PieceType::NONE) {
-          moves.push_back(std::make_tuple(piece.y, piece.x + 2));
-        }
-        if (piece.type == PieceType::WHITE_KING && castleQ &&
-            pieces[piece.y][piece.x - 1].type == PieceType::NONE &&
-            pieces[piece.y][piece.x - 2].type == PieceType::NONE &&
-            pieces[piece.y][piece.x - 3].type == PieceType::NONE) {
-          moves.push_back(std::make_tuple(piece.y, piece.x - 2));
-        }
-        break;
-      case PieceType::WHITE_ROOK:
-      case PieceType::BLACK_ROOK:
-        for (int i = piece.x + 1; i < 8; i++) {
-          if (pieces[piece.y][i].color == Color::NONE) {
-            moves.push_back(std::make_tuple(piece.y, i));
-          } else if (pieces[piece.y][i].color == oppositeColor) {
-            moves.push_back(std::make_tuple(piece.y, i));
-            break;
-          } else {
-            break;
-          }
-        }
-        for (int i = piece.x - 1; i >= 0; i--) {
-          if (pieces[piece.y][i].color == Color::NONE) {
-            moves.push_back(std::make_tuple(piece.y, i));
-          } else if (pieces[piece.y][i].color == oppositeColor) {
-            moves.push_back(std::make_tuple(piece.y, i));
-            break;
-          } else {
-            break;
-          }
-        }
-        for (int i = piece.y + 1; i < 8; i++) {
-          if (pieces[i][piece.x].color == Color::NONE) {
-            moves.push_back(std::make_tuple(i, piece.x));
-          } else if (pieces[i][piece.x].color == oppositeColor) {
-            moves.push_back(std::make_tuple(i, piece.x));
-            break;
-          } else {
-            break;
-          }
-        }
-        for (int i = piece.y - 1; i >= 0; i--) {
-          if (pieces[i][piece.x].color == Color::NONE) {
-            moves.push_back(std::make_tuple(i, piece.x));
-          } else if (pieces[i][piece.x].color == oppositeColor) {
-            moves.push_back(std::make_tuple(i, piece.x));
-            break;
-          } else {
-            break;
-          }
-        }
-        break;
-      case PieceType::WHITE_BISHOP:
-      case PieceType::BLACK_BISHOP:
-        for (int i = 1; i < 8; i++) {  // Unten Rechts
-          if (piece.y + i > 7 || piece.x + i > 7) {
-            break;
-          } else if (pieces[piece.y + i][piece.x + i].color == Color::NONE) {
-            moves.push_back(std::make_tuple(piece.y + i, piece.x + i));
-          } else if (pieces[piece.y + i][piece.x + i].color == oppositeColor) {
-            moves.push_back(std::make_tuple(piece.y + i, piece.x + i));
-            break;
-          } else {
-            break;
-          }
-        }
-        for (int i = 1; i < 8; i++) {  // Unten Links
-          if (piece.y + i > 7 || piece.x - i < 0) {
-            break;
-          } else if (pieces[piece.y + i][piece.x - i].color == Color::NONE) {
-            moves.push_back(std::make_tuple(piece.y + i, piece.x - i));
-          } else if (pieces[piece.y + i][piece.x - i].color == oppositeColor) {
-            moves.push_back(std::make_tuple(piece.y + i, piece.x - i));
-            break;
-          } else {
-            break;
-          }
-        }
-        for (int i = 1; i < 8; i++) {  // Oben Rechts
-          if (piece.y - i < 0 || piece.x + i > 7) {
-            break;
-          } else if (pieces[piece.y - i][piece.x + i].color == Color::NONE) {
-            moves.push_back(std::make_tuple(piece.y - i, piece.x + i));
-          } else if (pieces[piece.y - i][piece.x + i].color == oppositeColor) {
-            moves.push_back(std::make_tuple(piece.y - i, piece.x + i));
-            break;
-          } else {
-            break;
-          }
-        }
-        for (int i = 1; i < 8; i++) {  // Oben Links
-          if (piece.y - i < 0 || piece.x - i < 0) {
-            break;
-          } else if (pieces[piece.y - i][piece.x - i].color == Color::NONE) {
-            moves.push_back(std::make_tuple(piece.y - i, piece.x - i));
-          } else if (pieces[piece.y - i][piece.x - i].color == oppositeColor) {
-            moves.push_back(std::make_tuple(piece.y - i, piece.x - i));
-            break;
-          } else {
-            break;
-          }
-        }
-        break;
-      case PieceType::WHITE_KNIGHT:
-      case PieceType::BLACK_KNIGHT:
-        if (pieces[piece.y - 1][piece.x + 2].color != piece.color &&
-            piece.y - 1 >= 0 && piece.x + 2 < 8) {
-          moves.push_back(std::make_tuple(piece.y - 1, piece.x + 2));
-        }
-        if (pieces[piece.y - 1][piece.x - 2].color != piece.color &&
-            piece.y - 1 >= 0 && piece.x - 2 >= 0) {
-          moves.push_back(std::make_tuple(piece.y - 1, piece.x - 2));
-        }
-        if (pieces[piece.y + 1][piece.x + 2].color != piece.color &&
-            piece.y + 1 < 8 && piece.x + 2 < 8) {
-          moves.push_back(std::make_tuple(piece.y + 1, piece.x + 2));
-        }
-        if (pieces[piece.y + 1][piece.x - 2].color != piece.color &&
-            piece.y + 1 < 8 && piece.x - 2 >= 0) {
-          moves.push_back(std::make_tuple(piece.y + 1, piece.x - 2));
-        }
-        if (pieces[piece.y - 2][piece.x + 1].color != piece.color &&
-            piece.y - 2 >= 0 && piece.x + 1 < 8) {
-          moves.push_back(std::make_tuple(piece.y - 2, piece.x + 1));
-        }
-        if (pieces[piece.y - 2][piece.x - 1].color != piece.color &&
-            piece.y - 2 >= 0 && piece.x - 1 >= 0) {
-          moves.push_back(std::make_tuple(piece.y - 2, piece.x - 1));
-        }
-        if (pieces[piece.y + 2][piece.x + 1].color != piece.color &&
-            piece.y + 2 < 8 && piece.x + 1 < 8) {
-          moves.push_back(std::make_tuple(piece.y + 2, piece.x + 1));
-        }
-        if (pieces[piece.y + 2][piece.x - 1].color != piece.color &&
-            piece.y + 2 < 8 && piece.x - 1 >= 0) {
-          moves.push_back(std::make_tuple(piece.y + 2, piece.x - 1));
-        }
-        break;
-      case PieceType::WHITE_QUEEN:
-      case PieceType::BLACK_QUEEN:
-        for (int i = piece.x + 1; i < 8; i++) {
-          if (pieces[piece.y][i].color == Color::NONE) {
-            moves.push_back(std::make_tuple(piece.y, i));
-          } else if (pieces[piece.y][i].color == oppositeColor) {
-            moves.push_back(std::make_tuple(piece.y, i));
-            break;
-          } else {
-            break;
-          }
-        }
-        for (int i = piece.x - 1; i >= 0; i--) {
-          if (pieces[piece.y][i].color == Color::NONE) {
-            moves.push_back(std::make_tuple(piece.y, i));
-          } else if (pieces[piece.y][i].color == oppositeColor) {
-            moves.push_back(std::make_tuple(piece.y, i));
-            break;
-          } else {
-            break;
-          }
-        }
-        for (int i = piece.y + 1; i < 8; i++) {
-          if (pieces[i][piece.x].color == Color::NONE) {
-            moves.push_back(std::make_tuple(i, piece.x));
-          } else if (pieces[i][piece.x].color == oppositeColor) {
-            moves.push_back(std::make_tuple(i, piece.x));
-            break;
-          } else {
-            break;
-          }
-        }
-        for (int i = piece.y - 1; i >= 0; i--) {
-          if (pieces[i][piece.x].color == Color::NONE) {
-            moves.push_back(std::make_tuple(i, piece.x));
-          } else if (pieces[i][piece.x].color == oppositeColor) {
-            moves.push_back(std::make_tuple(i, piece.x));
-            break;
-          } else {
-            break;
-          }
-        }
-        for (int i = 1; i < 8; i++) {  // Unten Rechts
-          if (piece.y + i > 7 || piece.x + i > 7) {
-            break;
-          } else if (pieces[piece.y + i][piece.x + i].color == Color::NONE) {
-            moves.push_back(std::make_tuple(piece.y + i, piece.x + i));
-          } else if (pieces[piece.y + i][piece.x + i].color == oppositeColor) {
-            moves.push_back(std::make_tuple(piece.y + i, piece.x + i));
-            break;
-          } else {
-            break;
-          }
-        }
-        for (int i = 1; i < 8; i++) {  // Unten Links
-          if (piece.y + i > 7 || piece.x - i < 0) {
-            break;
-          } else if (pieces[piece.y + i][piece.x - i].color == Color::NONE) {
-            moves.push_back(std::make_tuple(piece.y + i, piece.x - i));
-          } else if (pieces[piece.y + i][piece.x - i].color == oppositeColor) {
-            moves.push_back(std::make_tuple(piece.y + i, piece.x - i));
-            break;
-          } else {
-            break;
-          }
-        }
-        for (int i = 1; i < 8; i++) {  // Oben Rechts
-          if (piece.y - i < 0 || piece.x + i > 7) {
-            break;
-          } else if (pieces[piece.y - i][piece.x + i].color == Color::NONE) {
-            moves.push_back(std::make_tuple(piece.y - i, piece.x + i));
-          } else if (pieces[piece.y - i][piece.x + i].color == oppositeColor) {
-            moves.push_back(std::make_tuple(piece.y - i, piece.x + i));
-            break;
-          } else {
-            break;
-          }
-        }
-        for (int i = 1; i < 8; i++) {  // Oben Links
-          if (piece.y - i < 0 || piece.x - i < 0) {
-            break;
-          } else if (pieces[piece.y - i][piece.x - i].color == Color::NONE) {
-            moves.push_back(std::make_tuple(piece.y - i, piece.x - i));
-          } else if (pieces[piece.y - i][piece.x - i].color == oppositeColor) {
-            moves.push_back(std::make_tuple(piece.y - i, piece.x - i));
-            break;
-          } else {
-            break;
-          }
-        }
-        break;
-      case PieceType::WHITE_PAWN:
-        if (piece.y == 6 &&
-            pieces[piece.y - 2][piece.x].type == PieceType::NONE &&
-            pieces[piece.y - 1][piece.x].type == PieceType::NONE) {
-          moves.push_back(std::make_tuple(piece.y - 2, piece.x));
-        }
-        if (pieces[piece.y - 1][piece.x].type == PieceType::NONE &&
-            (piece.y - 1) >= 0) {
-          moves.push_back(std::make_tuple(piece.y - 1, piece.x));
-        }
-        if (pieces[piece.y - 1][piece.x + 1].color == oppositeColor &&
-            (piece.y - 1) >= 0) {
-          moves.push_back(std::make_tuple(piece.y - 1, piece.x + 1));
-        }
-        if (pieces[piece.y - 1][piece.x - 1].color == oppositeColor &&
-            (piece.y - 1) >= 0) {
-          moves.push_back(std::make_tuple(piece.y - 1, piece.x - 1));
-        }
-        if (pieces[piece.y][piece.x + 1].color == oppositeColor &&
-            (piece.y - 1) > 0 &&//??? I mean was soll das tun ???
-            pieces[piece.y][piece.x + 1].enPassant == true) {
-          moves.push_back(std::make_tuple(piece.y - 1, piece.x + 1));
-        }
-        if (pieces[piece.y][piece.x - 1].color == oppositeColor &&
-            (piece.y - 1) > 0 &&
-            pieces[piece.y][piece.x - 1].enPassant == true) {
-          moves.push_back(std::make_tuple(piece.y - 1, piece.x - 1));
-        }
-        break;
-      case PieceType::BLACK_PAWN:
-        if (piece.y == 1 &&
-            pieces[piece.y + 2][piece.x].type == PieceType::NONE &&
-            pieces[piece.y + 1][piece.x].type == PieceType::NONE) {
-          moves.push_back(std::make_tuple(piece.y + 2, piece.x));
-        }
-        if (pieces[piece.y + 1][piece.x].type == PieceType::NONE &&
-            (piece.y + 1) > 0) {
-          moves.push_back(std::make_tuple(piece.y + 1, piece.x));
-        }
-        if (pieces[piece.y + 1][piece.x + 1].color == oppositeColor &&
-            (piece.y + 1) > 0) {
-          moves.push_back(std::make_tuple(piece.y + 1, piece.x + 1));
-        }
-        if (pieces[piece.y + 1][piece.x - 1].color == oppositeColor &&
-            (piece.y + 1) > 0) {
-          moves.push_back(std::make_tuple(piece.y + 1, piece.x - 1));
-        }
-        if (pieces[piece.y][piece.x + 1].color == oppositeColor &&
-            (piece.y + 1) > 0 &&
-            pieces[piece.y][piece.x + 1].enPassant == true) {
-          moves.push_back(std::make_tuple(piece.y + 1, piece.x + 1));
-        }
-        if (pieces[piece.y][piece.x - 1].color == oppositeColor &&
-            (piece.y + 1) > 0 &&
-            pieces[piece.y][piece.x - 1].enPassant == true) {
-          moves.push_back(std::make_tuple(piece.y + 1, piece.x - 1));
-        }
-        break;
-    }
-    return moves;
-  }
-
-	/* ---------------------------- Move Validation ---------------------------- */
+  /* ---------------------------- Move Validation ----------------------------
+   */
 
   bool allowedMove(Piece& piece, int target_x, int target_y,
                    std::vector<std::tuple<int, int>> moves) {
@@ -729,8 +317,9 @@ class Game {
             PieceType::NONE;
         pieces[get<0>(lastPosition)][get<1>(lastPosition)].color = Color::NONE;
       }
-      if (piece.type == PieceType::BLACK_KING && target_x == piece.x + 2) {  // k
-        if (castleCheck('k',Color::WHITE)==false){
+      if (piece.type == PieceType::BLACK_KING &&
+          target_x == piece.x + 2) {  // k
+        if (castleCheck('k', Color::WHITE) == false) {
           return false;
         }
         pieces[0][5].color = Color::BLACK;
@@ -741,8 +330,9 @@ class Game {
       if (piece.type == PieceType::BLACK_ROOK && piece.x == 7) {
         castlek = false;
       }
-      if (piece.type == PieceType::BLACK_KING && target_x == piece.x - 2) {  // q
-        if (castleCheck('q', Color::WHITE)==false){
+      if (piece.type == PieceType::BLACK_KING &&
+          target_x == piece.x - 2) {  // q
+        if (castleCheck('q', Color::WHITE) == false) {
           return false;
         }
         pieces[0][3].color = Color::BLACK;
@@ -753,9 +343,10 @@ class Game {
       if (piece.type == PieceType::BLACK_ROOK && piece.x == 0) {
         castlek = false;
       }
-      if (piece.type == PieceType::WHITE_KING && target_x == piece.x + 2) {  // K
+      if (piece.type == PieceType::WHITE_KING &&
+          target_x == piece.x + 2) {  // K
         // King will move below
-        if (castleCheck('k',Color::BLACK)==false){
+        if (castleCheck('k', Color::BLACK) == false) {
           return false;
         }
         pieces[7][5].color = Color::WHITE;
@@ -766,8 +357,9 @@ class Game {
       if (piece.type == PieceType::WHITE_ROOK && piece.x == 7) {
         castleK = false;
       }
-      if (piece.type == PieceType::WHITE_KING && target_x == piece.x - 2) {  // Q
-        if (castleCheck('Q', Color::BLACK)==false){
+      if (piece.type == PieceType::WHITE_KING &&
+          target_x == piece.x - 2) {  // Q
+        if (castleCheck('Q', Color::BLACK) == false) {
           return false;
         }
         pieces[7][3].color = Color::WHITE;
@@ -802,19 +394,27 @@ class Game {
       pieces[piece.y][piece.x].type = PieceType::NONE;
       Color tmp = toMove == Color::BLACK ? Color::WHITE : Color::BLACK;
       std::vector<std::tuple<int, int>> check = movesList(tmp);
-      if (toMove == Color::BLACK && isMoveInList(check, blackKingY, blackKingX)) {
-        pieces[target_y][target_x].color = tmpC;//Wir updaten die Positionen vorher, falls er im Schach steht muss alles wieder zurück
-        pieces[target_y][target_x].type = tmpD;//Vielleicht ist CopyBoard effektiver? Voralldem weil der Bot ja alles prüfen muss
-        pieces[piece.y][piece.x].color = tmpA;//dann müsste er nur die Copy nutzen und nicht jedes mal diese tmps erstellen
-        pieces[piece.y][piece.x].type = tmpB;    
+      if (toMove == Color::BLACK &&
+          isMoveInList(check, blackKingY, blackKingX)) {
+        pieces[target_y][target_x].color =
+            tmpC;  // Wir updaten die Positionen vorher, falls er im Schach
+                   // steht muss alles wieder zurück
+        pieces[target_y][target_x].type =
+            tmpD;  // Vielleicht ist CopyBoard effektiver? Voralldem weil der
+                   // Bot ja alles prüfen muss
+        pieces[piece.y][piece.x].color =
+            tmpA;  // dann müsste er nur die Copy nutzen und nicht jedes mal
+                   // diese tmps erstellen
+        pieces[piece.y][piece.x].type = tmpB;
         pieces[target_y][target_x].enPassant = false;
         return false;
       }
-      if (toMove == Color::WHITE && isMoveInList(check, whiteKingY, whiteKingX)) {
+      if (toMove == Color::WHITE &&
+          isMoveInList(check, whiteKingY, whiteKingX)) {
         pieces[target_y][target_x].color = tmpC;
         pieces[target_y][target_x].type = tmpD;
         pieces[piece.y][piece.x].color = tmpA;
-        pieces[piece.y][piece.x].type = tmpB; 
+        pieces[piece.y][piece.x].type = tmpB;
         pieces[target_y][target_x].enPassant = false;
         return false;
       }
@@ -846,7 +446,8 @@ class Game {
     for (int i = 0; i < 8; i++) {
       for (int j = 0; j < 8; j++) {
         if (pieces[i][j].color == color) {
-          tmp = generatePossibleMoves(pieces[i][j]);
+          tmp = generatePossibleMoves(pieces[i][j], pieces, castlek, castleq,
+                                      castleK, castleQ);
           list.insert(list.end(), tmp.begin(), tmp.end());
         }
       }
@@ -860,8 +461,9 @@ class Game {
     for (int i = 0; i < 8; i++) {
       for (int j = 0; j < 8; j++) {
         if (pieces[i][j].color == color) {
-          tmp = generatePossibleMoves(pieces[i][j]);
-          for (const auto& move : tmp){
+          tmp = generatePossibleMoves(pieces[i][j], pieces, castlek, castleq,
+                                      castleK, castleQ);
+          for (const auto& move : tmp) {
             int move_i = std::get<0>(move);
             int move_j = std::get<1>(move);
             list.push_back(std::make_tuple(move_i, move_j, i, j));
@@ -872,7 +474,8 @@ class Game {
     return list;
   }
 
-	/* ------------------------------- Rendering ------------------------------- */
+  /* ------------------------------- Rendering -------------------------------
+   */
 
   void drawBoard() {
     for (int i = 0; i < 8; ++i) {
@@ -901,11 +504,10 @@ class Game {
     return sf::Vector2(col, row);
   }
 
-	float getFieldSize() {
-		return window.getSize().x < window.getSize().y
-			? window.getSize().x / 8
-			: window.getSize().y / 8;
-	}
+  float getFieldSize() {
+    return window.getSize().x < window.getSize().y ? window.getSize().x / 8
+                                                   : window.getSize().y / 8;
+  }
 
   void run() {
     interpret();
@@ -914,9 +516,7 @@ class Game {
     Piece* movingPiece = nullptr;
     sf::Clock clock;
 
-		std::vector<std::tuple<int, int>> possibleMoves;
-
-
+    std::vector<std::tuple<int, int>> possibleMoves;
 
     int lastFrameTime = 0;
     int targetFrameTime = 1000 / 144;
@@ -945,52 +545,55 @@ class Game {
         // Listen for mouse drag
         if (event.type == sf::Event::MouseButtonPressed) {
           sf::Vector2i mousePosition = sf::Mouse::getPosition(window);
-          sf::Vector2i target = getCoordinateIndex(mousePosition.x, mousePosition.y);
+          sf::Vector2i target =
+              getCoordinateIndex(mousePosition.x, mousePosition.y);
 
-					if (target.x >= 0 && target.x < 8 && target.y >= 0 && target.y < 8) {
-						if (pieces[target.y][target.x].color == toMove) {
-							// User wants to move one of his pieces
-							isMoving = true;
-							movingPiece = &pieces[target.y][target.x];
+          if (target.x >= 0 && target.x < 8 && target.y >= 0 && target.y < 8) {
+            if (pieces[target.y][target.x].color == toMove) {
+              // User wants to move one of his pieces
+              isMoving = true;
+              movingPiece = &pieces[target.y][target.x];
 
-							possibleMoves =
-									generatePossibleMoves(*movingPiece);
-							initializeBoard();
-						} else {
-							bool moveAllowed = allowedMove(*movingPiece, target.x, target.y, possibleMoves);
+              possibleMoves = generatePossibleMoves(
+                  *movingPiece, pieces, castlek, castleq, castleK, castleQ);
+              initializeBoard();
+            } else {
+              bool moveAllowed =
+                  allowedMove(*movingPiece, target.x, target.y, possibleMoves);
 
-							if (moveAllowed) {
-								isMoving = false;
-								possibleMoves.clear();
-								movingPiece = nullptr;
-								initializeBoard();
-								interpret();
+              if (moveAllowed) {
+                isMoving = false;
+                possibleMoves.clear();
+                movingPiece = nullptr;
+                initializeBoard();
+                interpret();
                 engine();
                 interpret();
-							}
-						}
-					}
+              }
+            }
+          }
         }
       }
-			
-			if (isMoving) {
-				for (const auto& move : possibleMoves) {
-					// Highlight the move field
-					sf::RectangleShape& field = board[get<0>(move)][get<1>(move)];
-					field.setFillColor(sf::Color(186, 202, 68));
-				}
-			}
-			drawBoard();
-			drawPieces();
-			drawFieldLegend();
+
+      if (isMoving) {
+        for (const auto& move : possibleMoves) {
+          // Highlight the move field
+          sf::RectangleShape& field = board[get<0>(move)][get<1>(move)];
+          field.setFillColor(sf::Color(186, 202, 68));
+        }
+      }
+      drawBoard();
+      drawPieces();
+      drawFieldLegend();
       window.display();
     }
   }
 
-  void engine(){
-    std::vector<std::tuple<int, int, int, int>> tmp = movesListEngine(Color::BLACK);
+  void engine() {
+    std::vector<std::tuple<int, int, int, int>> tmp =
+        movesListEngine(Color::BLACK);
     std::vector<std::tuple<int, int>> tmpMove = movesList(Color::BLACK);
-    if (tmp.size()==0){
+    if (tmp.size() == 0) {
       std::cout << "CHECKMATE";
       return;
     }
@@ -999,15 +602,18 @@ class Game {
     std::uniform_int_distribution<> dis(0, tmp.size() - 1);
     int randomIndex = dis(gen);
     std::tuple<int, int, int, int> randomMove = tmp[randomIndex];
-    bool fun = allowedMove(pieces[std::get<2>(randomMove)][std::get<3>(randomMove)], std::get<0>(randomMove), std::get<1>(randomMove), tmpMove);
-    while(!fun){
+    bool fun =
+        allowedMove(pieces[std::get<2>(randomMove)][std::get<3>(randomMove)],
+                    std::get<0>(randomMove), std::get<1>(randomMove), tmpMove);
+    while (!fun) {
       int randomIndex = dis(gen);
       std::tuple<int, int, int, int> randomMove = tmp[randomIndex];
-      fun = allowedMove(pieces[std::get<2>(randomMove)][std::get<3>(randomMove)], std::get<0>(randomMove), std::get<1>(randomMove), tmpMove);
+      fun = allowedMove(
+          pieces[std::get<2>(randomMove)][std::get<3>(randomMove)],
+          std::get<0>(randomMove), std::get<1>(randomMove), tmpMove);
     }
   }
 };
-
 
 int main() {
   setlocale(LC_ALL, "");
