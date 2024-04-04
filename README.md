@@ -38,7 +38,7 @@ Blitz Chess is a chess engine that is designed to be as fast as possible. It is 
 The blitz chess engine comes as a standalone binary. You can run it from the command line. The engine will output the best move it has found for the given position.
 
 ```sh
-./bin/latest <fen>
+./bin/engine/latest <fen>
 ```
 
 ## Building from Source
@@ -46,9 +46,13 @@ The blitz chess engine comes as a standalone binary. You can run it from the com
 To build the engine from source, you will need to have NASM and ld installed on your system. You can then run the following commands to build the engine.
 
 ```sh
-make build # Build the engine
-make run # Run the engine
-make test # Run the tests
+make engine-build # Build the engine
+make engine-run # Run the engine
+make engine-test # Run the tests
+
+make gui-build # Build the engine
+make gui-run # Run the engine
+make gui-test # Run the tests
 ```
 
 ## Contributing
