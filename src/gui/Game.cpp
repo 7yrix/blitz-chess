@@ -41,7 +41,7 @@ class Game {
 
   Game()
       : window(sf::VideoMode(800, 800), "Blitz Chess"),
-        position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") {
+        position("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -") {
     loadTextures();
     initializeBoard();
   }
@@ -82,6 +82,8 @@ class Game {
   void loadTextures() {
     std::filesystem::path executableDirectory =
         getAbsoluteExecutableDirectory();
+
+		printf("%s\n", (executableDirectory / "../../assets" / "pieces.png").c_str());
 
     texture.loadFromFile(executableDirectory / "../../assets" / "pieces.png");
 
@@ -132,6 +134,55 @@ class Game {
     }
   }
 
+	void parseFenHeaders(std::string headers) {
+		std::vector<std::string> headerList;
+		std::string tmp = "";
+		for (char c : headers) {
+			if (c == ' ') {
+				headerList.push_back(tmp);
+				tmp = "";
+			} else {
+				tmp += c;
+			}
+		}
+
+		headerList.push_back(tmp);
+
+		if (headerList[0] == "w") {
+			toMove = Color::WHITE;
+		} else {
+			toMove = Color::BLACK;
+		}
+
+		if (headerList[1].find('K') == std::string::npos) {
+			castleK = false;
+		}
+
+		if (headerList[1].find('Q') == std::string::npos) {
+			castleQ = false;
+		}
+
+		if (headerList[1].find('k') == std::string::npos) {
+			castlek = false;
+		}
+
+		if (headerList[1].find('q') == std::string::npos) {
+			castleq = false;
+		}
+
+		if (headerList[2] != "-") {
+			int file = headerList[2][0] - 'a';
+			int rank = 8 - (headerList[2][1] - '0');
+			pieces[rank][file].enPassant = true;
+		}
+
+		if (headerList[3] != "-") {
+			int file = headerList[3][0] - 'a';
+			int rank = 8 - (headerList[3][1] - '0');
+			pieces[rank][file].enPassant = true;
+		}
+	}
+
   void interpret() {
     int row = 0;  // Starten Sie bei der letzten Reihe (Zeile 8)
     int col = 0;  // Starten Sie in der ersten Spalte (A)
@@ -139,6 +190,7 @@ class Game {
     for (char c : position) {
       if (c == ' ') {
         // Informationen über die Möglichkeit der Rochade etc. erreicht
+				parseFenHeaders(position.substr(position.find(' '), position.length() - 1));
         break;
       } else if (c == '/') {
         // Neue Zeile erreicht, gehen Sie zur nächsten Zeile und setzen Sie die
@@ -442,13 +494,13 @@ class Game {
       /* ---------------------------- Print Board --------------------------- */
 
       //std::cout << position << endl;
-      for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 8; j++) {
-          printf("%ls ", pieces[i][j].print());
-        }
-        cout << endl;
-      }
-      cout << "-----------------" << endl;
+      // for (int i = 0; i < 8; i++) {
+      //   for (int j = 0; j < 8; j++) {
+      //     printf("%ls ", pieces[i][j].print());
+      //   }
+      //   cout << endl;
+      // }
+      // cout << "-----------------" << endl;
       return true;
     }
     return false;
@@ -525,7 +577,7 @@ class Game {
 
   void run() {
     interpret();
-		std::cout << deepEngine(position, toMove, 3);
+		std::cout << deepEngine(position, toMove, 1);
     sf::Event event;
     bool isMoving = false;
     Piece* movingPiece = nullptr;
@@ -658,9 +710,8 @@ class Game {
         std::cout << "Move failed, moving to: " << std::get<0>(tuple) << ", " << std::get<1>(tuple) << std::endl;
         std::cout << "Tried moving from: " << std::get<2>(tuple) << ", " << std::get<3>(tuple) << std::endl;
         printf("Piece is: %ls\n", pieces[std::get<2>(tuple)][std::get<3>(tuple)].print());
-        printMovesFull(tmpList);
+        // printMovesFull(tmpList);
 				// printMovesAsBoard(tmpList);
-        exit(0);
       }
       position = startPosition;
       interpret();
