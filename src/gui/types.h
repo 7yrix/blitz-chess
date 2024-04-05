@@ -66,4 +66,20 @@ inline std::map<PieceType, char> ReversePieceMap = {
 const int PIECE_HEIGHT = 250;
 const int PIECE_WIDTH = 250;
 
+struct MoveStruct {
+  int x;
+  int y;
+};
+
+struct FullMoveStruct {
+  MoveStruct from;
+  MoveStruct to;
+};
+
+typedef std::tuple<int, int> Move;
+typedef std::tuple<int, int, int, int> FullMove;
+
+typedef std::vector<Move> MoveList;
+typedef std::vector<FullMove> FullMoveList;
+
 #endif
