@@ -635,7 +635,7 @@ class Game {
 		reverseTurn();
   }
 
-	int deepEngine(std::string startPosition, Color color, int depth){
+	int deepEngine(std::string startPosition, Color color, int depth, int maxDepth = 4){
     if(depth == 0){
       return 1;
     }
@@ -652,7 +652,11 @@ class Game {
     std::vector<std::tuple<int, int>> tmpMove = movesList(otherColor);
     for (const auto& tuple : tmpList){
       if (allowedMove(pieces[std::get<2>(tuple)][std::get<3>(tuple)], std::get<1>(tuple), std::get<0>(tuple), tmpMove, otherColor)){
-        count += deepEngine(position, otherColor, depth-1);
+				if (depth == maxDepth){
+					return count;
+				}
+
+        count += deepEngine(position, otherColor, depth-1, maxDepth);
       }
       else{
         std::cout << "Move failed, moving to: " << std::get<0>(tuple) << ", " << std::get<1>(tuple) << std::endl;
