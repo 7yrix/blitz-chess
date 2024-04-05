@@ -41,7 +41,11 @@ class Game {
 
   Game()
       : window(sf::VideoMode(800, 800), "Blitz Chess"),
+<<<<<<< HEAD
         position("r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10") {
+=======
+        position("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -") {
+>>>>>>> 76b2694a9136161eb48b87dfe4764a9baaa3d42a
     loadTextures();
     initializeBoard();
   }
@@ -83,6 +87,7 @@ class Game {
     std::filesystem::path executableDirectory =
         getAbsoluteExecutableDirectory();
 
+<<<<<<< HEAD
     FILE *file;
     if (file = fopen((executableDirectory / "../../assets" / "pieces.png").c_str(), "r")) {
       fclose(file);
@@ -92,6 +97,9 @@ class Game {
     }
 
     printf("scheiss sprache");
+=======
+		printf("%s\n", (executableDirectory / "../../assets" / "pieces.png").c_str());
+>>>>>>> 76b2694a9136161eb48b87dfe4764a9baaa3d42a
 
     texture.loadFromFile(executableDirectory / "../../assets" / "pieces.png");
 
@@ -142,6 +150,55 @@ class Game {
     }
   }
 
+	void parseFenHeaders(std::string headers) {
+		std::vector<std::string> headerList;
+		std::string tmp = "";
+		for (char c : headers) {
+			if (c == ' ') {
+				headerList.push_back(tmp);
+				tmp = "";
+			} else {
+				tmp += c;
+			}
+		}
+
+		headerList.push_back(tmp);
+
+		if (headerList[0] == "w") {
+			toMove = Color::WHITE;
+		} else {
+			toMove = Color::BLACK;
+		}
+
+		if (headerList[1].find('K') == std::string::npos) {
+			castleK = false;
+		}
+
+		if (headerList[1].find('Q') == std::string::npos) {
+			castleQ = false;
+		}
+
+		if (headerList[1].find('k') == std::string::npos) {
+			castlek = false;
+		}
+
+		if (headerList[1].find('q') == std::string::npos) {
+			castleq = false;
+		}
+
+		if (headerList[2] != "-") {
+			int file = headerList[2][0] - 'a';
+			int rank = 8 - (headerList[2][1] - '0');
+			pieces[rank][file].enPassant = true;
+		}
+
+		if (headerList[3] != "-") {
+			int file = headerList[3][0] - 'a';
+			int rank = 8 - (headerList[3][1] - '0');
+			pieces[rank][file].enPassant = true;
+		}
+	}
+
   void interpret() {
     int row = 0;  // Starten Sie bei der letzten Reihe (Zeile 8)
     int col = 0;  // Starten Sie in der ersten Spalte (A)
@@ -149,6 +206,7 @@ class Game {
     for (char c : position) {
       if (c == ' ') {
         // Informationen über die Möglichkeit der Rochade etc. erreicht
+				parseFenHeaders(position.substr(position.find(' '), position.length() - 1));
         break;
       } else if (c == '/') {
         // Neue Zeile erreicht, gehen Sie zur nächsten Zeile und setzen Sie die
@@ -468,6 +526,7 @@ class Game {
       /* ---------------------------- Print Board --------------------------- */
 
       //std::cout << position << endl;
+<<<<<<< HEAD
       for (int y = 0; y < 8; y++) {
         for (int x = 0; x < 8; x++) {
           printf("%ls ", pieces[y][x].print());
@@ -475,6 +534,15 @@ class Game {
         cout << endl;
       }
       cout << "-----------------" << endl;
+=======
+      // for (int i = 0; i < 8; i++) {
+      //   for (int j = 0; j < 8; j++) {
+      //     printf("%ls ", pieces[i][j].print());
+      //   }
+      //   cout << endl;
+      // }
+      // cout << "-----------------" << endl;
+>>>>>>> 76b2694a9136161eb48b87dfe4764a9baaa3d42a
       return true;
     }
     return false;
@@ -553,7 +621,11 @@ class Game {
 
   void run() {
     interpret();
+<<<<<<< HEAD
 		std::cout << deepEngine(position, toMove, 2);
+=======
+		std::cout << deepEngine(position, toMove, 1);
+>>>>>>> 76b2694a9136161eb48b87dfe4764a9baaa3d42a
     sf::Event event;
     bool isMoving = false;
     Piece* movingPiece = nullptr;
@@ -682,6 +754,16 @@ class Game {
       if (allowedMove(pieces[move.to.y][move.to.x], move.from.y, move.from.x, tmpMove, otherColor)){
         count += deepEngine(position, otherColor, depth-1);
       }
+<<<<<<< HEAD
+=======
+      else{
+        std::cout << "Move failed, moving to: " << std::get<0>(tuple) << ", " << std::get<1>(tuple) << std::endl;
+        std::cout << "Tried moving from: " << std::get<2>(tuple) << ", " << std::get<3>(tuple) << std::endl;
+        printf("Piece is: %ls\n", pieces[std::get<2>(tuple)][std::get<3>(tuple)].print());
+        // printMovesFull(tmpList);
+				// printMovesAsBoard(tmpList);
+      }
+>>>>>>> 76b2694a9136161eb48b87dfe4764a9baaa3d42a
       position = startPosition;
       interpret();
     }
