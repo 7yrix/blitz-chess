@@ -46,13 +46,38 @@ class Game {
     initializeBoard();
   }
 
-  void printMoves(const std::vector<std::tuple<int, int>>& moves) {
+ void printMovesFull(const std::vector<std::tuple<int, int, int, int>>& moves) {
     for (const auto& move : moves) {
-      std::cout << "(" << std::get<0>(move) << ", " << std::get<1>(move)
-                << ") ";
+			printf("From: (%d, %d) To: (%d, %d)\n", std::get<2>(move), std::get<3>(move), std::get<0>(move), std::get<1>(move));
     }
-    std::cout << std::endl;
   }
+
+	void printMovesAsBoard(const std::vector<std::tuple<int, int, int, int>>& moves) {
+		// Simulate actually playing the move then print the resulting board.
+		Piece piecesCopy[8][8];
+
+		for (const auto& move : moves) {
+			std::copy(&pieces[0][0], &pieces[0][0]+8*8, &piecesCopy[0][0]);
+			Piece movedTo = piecesCopy[std::get<0>(move)][std::get<1>(move)];
+			Piece movedFrom = piecesCopy[std::get<2>(move)][std::get<3>(move)];
+
+			piecesCopy[std::get<0>(move)][std::get<1>(move)].color = movedFrom.color;
+			piecesCopy[std::get<0>(move)][std::get<1>(move)].type = movedFrom.type;
+			piecesCopy[std::get<0>(move)][std::get<1>(move)].enPassant = movedFrom.enPassant;
+			piecesCopy[std::get<2>(move)][std::get<3>(move)].color = movedTo.color;
+			piecesCopy[std::get<2>(move)][std::get<3>(move)].type = movedTo.type;
+			piecesCopy[std::get<2>(move)][std::get<3>(move)].enPassant = movedTo.enPassant;
+
+			for (int i = 0; i < 8; i++) {
+				for (int j = 0; j < 8; j++) {
+					printf("%ls ", piecesCopy[i][j].print());
+				}
+				cout << endl;
+			}
+			printf("---------------\n");
+		}
+	}
+
 
   void loadTextures() {
     std::filesystem::path executableDirectory =
@@ -281,12 +306,15 @@ class Game {
    */
 
   bool allowedMove(Piece& piece, int target_x, int target_y,
-                   std::vector<std::tuple<int, int>> moves) {
+                   std::vector<std::tuple<int, int>> moves, Color color) {
     if (isMoveInList(moves, target_y, target_x)) {
-      if (piece.color == Color::BLACK && toMove == Color::WHITE ||
-          piece.color == Color::WHITE && toMove == Color::BLACK) {
+			// Not your turn bro!
+      if (piece.color == Color::BLACK && color == Color::WHITE ||
+          piece.color == Color::WHITE && color == Color::BLACK) {
         return false;
       }
+
+			// Trying to move the piece onto itself
       if (piece.x == target_x && piece.y == target_y) {
         return false;
       }
@@ -317,9 +345,8 @@ class Game {
             PieceType::NONE;
         pieces[get<0>(lastPosition)][get<1>(lastPosition)].color = Color::NONE;
       }
-      if (piece.type == PieceType::BLACK_KING &&
-          target_x == piece.x + 2) {  // k
-        if (castleCheck('k', Color::WHITE) == false) {
+      if (piece.type == PieceType::BLACK_KING && target_x == piece.x + 2) {  // k
+        if (castleCheck('k',Color::WHITE)==false){
           return false;
         }
         pieces[0][5].color = Color::BLACK;
@@ -330,9 +357,8 @@ class Game {
       if (piece.type == PieceType::BLACK_ROOK && piece.x == 7) {
         castlek = false;
       }
-      if (piece.type == PieceType::BLACK_KING &&
-          target_x == piece.x - 2) {  // q
-        if (castleCheck('q', Color::WHITE) == false) {
+      if (piece.type == PieceType::BLACK_KING && target_x == piece.x - 2) {  // q
+        if (castleCheck('q', Color::WHITE)==false){
           return false;
         }
         pieces[0][3].color = Color::BLACK;
@@ -343,10 +369,9 @@ class Game {
       if (piece.type == PieceType::BLACK_ROOK && piece.x == 0) {
         castlek = false;
       }
-      if (piece.type == PieceType::WHITE_KING &&
-          target_x == piece.x + 2) {  // K
+      if (piece.type == PieceType::WHITE_KING && target_x == piece.x + 2) {  // K
         // King will move below
-        if (castleCheck('k', Color::BLACK) == false) {
+        if (castleCheck('k',Color::BLACK)==false){
           return false;
         }
         pieces[7][5].color = Color::WHITE;
@@ -357,9 +382,8 @@ class Game {
       if (piece.type == PieceType::WHITE_ROOK && piece.x == 7) {
         castleK = false;
       }
-      if (piece.type == PieceType::WHITE_KING &&
-          target_x == piece.x - 2) {  // Q
-        if (castleCheck('Q', Color::BLACK) == false) {
+      if (piece.type == PieceType::WHITE_KING && target_x == piece.x - 2) {  // Q
+        if (castleCheck('Q', Color::BLACK)==false){
           return false;
         }
         pieces[7][3].color = Color::WHITE;
@@ -383,6 +407,7 @@ class Game {
         whiteKingY = target_y;
       }
 
+
       /* ---------------------------- Move Piece ---------------------------- */
       Color tmpA = pieces[piece.y][piece.x].color;
       PieceType tmpB = pieces[piece.y][piece.x].type;
@@ -392,29 +417,21 @@ class Game {
       pieces[target_y][target_x].type = piece.type;
       pieces[piece.y][piece.x].color = Color::NONE;
       pieces[piece.y][piece.x].type = PieceType::NONE;
-      Color tmp = toMove == Color::BLACK ? Color::WHITE : Color::BLACK;
-      std::vector<std::tuple<int, int>> check = movesList(tmp);
-      if (toMove == Color::BLACK &&
-          isMoveInList(check, blackKingY, blackKingX)) {
-        pieces[target_y][target_x].color =
-            tmpC;  // Wir updaten die Positionen vorher, falls er im Schach
-                   // steht muss alles wieder zurück
-        pieces[target_y][target_x].type =
-            tmpD;  // Vielleicht ist CopyBoard effektiver? Voralldem weil der
-                   // Bot ja alles prüfen muss
-        pieces[piece.y][piece.x].color =
-            tmpA;  // dann müsste er nur die Copy nutzen und nicht jedes mal
-                   // diese tmps erstellen
-        pieces[piece.y][piece.x].type = tmpB;
+      Color otherColor = color == Color::BLACK ? Color::WHITE : Color::BLACK;
+      std::vector<std::tuple<int, int>> check = movesList(otherColor);
+      if (color == Color::BLACK && isMoveInList(check, blackKingY, blackKingX)) {
+        pieces[target_y][target_x].color = tmpC;//Wir updaten die Positionen vorher, falls er im Schach steht muss alles wieder zurück
+        pieces[target_y][target_x].type = tmpD;//Vielleicht ist CopyBoard effektiver? Voralldem weil der Bot ja alles prüfen muss
+        pieces[piece.y][piece.x].color = tmpA;//dann müsste er nur die Copy nutzen und nicht jedes mal diese tmps erstellen
+        pieces[piece.y][piece.x].type = tmpB;    
         pieces[target_y][target_x].enPassant = false;
         return false;
       }
-      if (toMove == Color::WHITE &&
-          isMoveInList(check, whiteKingY, whiteKingX)) {
+      if (color == Color::WHITE && isMoveInList(check, whiteKingY, whiteKingX)) {
         pieces[target_y][target_x].color = tmpC;
         pieces[target_y][target_x].type = tmpD;
         pieces[piece.y][piece.x].color = tmpA;
-        pieces[piece.y][piece.x].type = tmpB;
+        pieces[piece.y][piece.x].type = tmpB; 
         pieces[target_y][target_x].enPassant = false;
         return false;
       }
@@ -424,8 +441,7 @@ class Game {
 
       /* ---------------------------- Print Board --------------------------- */
 
-      std::cout << position << endl;
-      toMove == Color::BLACK ? toMove = Color::WHITE : toMove = Color::BLACK;
+      //std::cout << position << endl;
       for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
           printf("%ls ", pieces[i][j].print());
@@ -435,12 +451,10 @@ class Game {
       cout << "-----------------" << endl;
       return true;
     }
-    // NOTE: Maybe important???????
-    // moves.clear();
     return false;
   }
-
-  std::vector<std::tuple<int, int>> movesList(Color color) {
+  
+	std::vector<std::tuple<int, int>> movesList(Color color) {
     std::vector<std::tuple<int, int>> tmp;
     std::vector<std::tuple<int, int>> list;
     for (int i = 0; i < 8; i++) {
@@ -511,6 +525,7 @@ class Game {
 
   void run() {
     interpret();
+		std::cout << deepEngine(position, toMove, 2);
     sf::Event event;
     bool isMoving = false;
     Piece* movingPiece = nullptr;
@@ -559,12 +574,13 @@ class Game {
               initializeBoard();
             } else {
               bool moveAllowed =
-                  allowedMove(*movingPiece, target.x, target.y, possibleMoves);
+                  allowedMove(*movingPiece, target.x, target.y, possibleMoves, toMove);
 
               if (moveAllowed) {
                 isMoving = false;
                 possibleMoves.clear();
                 movingPiece = nullptr;
+								reverseTurn();
                 initializeBoard();
                 interpret();
                 engine();
@@ -589,11 +605,18 @@ class Game {
     }
   }
 
-  void engine() {
-    std::vector<std::tuple<int, int, int, int>> tmp =
-        movesListEngine(Color::BLACK);
+  void reverseTurn() {
+		if (toMove == Color::BLACK) {
+			toMove = Color::WHITE;
+		} else {
+			toMove = Color::BLACK;
+		}
+	}
+
+  void engine(){
+    std::vector<std::tuple<int, int, int, int>> tmp = movesListEngine(Color::BLACK);
     std::vector<std::tuple<int, int>> tmpMove = movesList(Color::BLACK);
-    if (tmp.size() == 0) {
+    if (tmp.size()==0){
       std::cout << "CHECKMATE";
       return;
     }
@@ -602,16 +625,47 @@ class Game {
     std::uniform_int_distribution<> dis(0, tmp.size() - 1);
     int randomIndex = dis(gen);
     std::tuple<int, int, int, int> randomMove = tmp[randomIndex];
-    bool fun =
-        allowedMove(pieces[std::get<2>(randomMove)][std::get<3>(randomMove)],
-                    std::get<0>(randomMove), std::get<1>(randomMove), tmpMove);
-    while (!fun) {
+    bool fun = allowedMove(pieces[std::get<2>(randomMove)][std::get<3>(randomMove)], std::get<1>(randomMove), std::get<0>(randomMove), tmpMove, toMove);
+    while(!fun){
+			//reverseTurn();
       int randomIndex = dis(gen);
       std::tuple<int, int, int, int> randomMove = tmp[randomIndex];
-      fun = allowedMove(
-          pieces[std::get<2>(randomMove)][std::get<3>(randomMove)],
-          std::get<0>(randomMove), std::get<1>(randomMove), tmpMove);
+      fun = allowedMove(pieces[std::get<2>(randomMove)][std::get<3>(randomMove)], std::get<1>(randomMove), std::get<0>(randomMove), tmpMove, toMove);
     }
+		reverseTurn();
+  }
+
+	int deepEngine(std::string startPosition, Color color, int depth){
+    if(depth == 0){
+      return 1;
+    }
+    int count = 0;
+    Color otherColor; 
+    interpret();
+    if (color == Color::BLACK){
+      otherColor=Color::WHITE;
+    }
+    else{
+      otherColor=Color::BLACK;
+    }
+    std::vector<std::tuple<int, int, int, int>> tmpList = movesListEngine(otherColor);
+    std::vector<std::tuple<int, int>> tmpMove = movesList(otherColor);
+    for (const auto& tuple : tmpList){
+      if (allowedMove(pieces[std::get<2>(tuple)][std::get<3>(tuple)], std::get<1>(tuple), std::get<0>(tuple), tmpMove, otherColor)){
+        count += deepEngine(position, otherColor, depth-1);
+      }
+      else{
+        std::cout << "Move failed, moving to: " << std::get<0>(tuple) << ", " << std::get<1>(tuple) << std::endl;
+        std::cout << "Tried moving from: " << std::get<2>(tuple) << ", " << std::get<3>(tuple) << std::endl;
+        printf("Piece is: %ls\n", pieces[std::get<2>(tuple)][std::get<3>(tuple)].print());
+        printMovesFull(tmpList);
+				// printMovesAsBoard(tmpList);
+        exit(0);
+      }
+      position = startPosition;
+      interpret();
+    }
+    return count;
   }
 };
 
